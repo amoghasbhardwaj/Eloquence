@@ -1,0 +1,63 @@
+|-- .gitattributes
+|-- .github
+    |-- workflows
+        |-- go.yml
+|-- README.md
+|-- ast
+    |-- README.md
+    |-- ast.go
+    |-- ast_benchmark_test.go
+    |-- ast_integration_test.go
+    |-- ast_sanity_test.go
+    |-- ast_unit_test.go
+|-- evaluator
+    |-- README.md
+    |-- evaluator.go
+    |-- evaluator_benchmark_test.go
+    |-- evaluator_integration_test.go
+    |-- evaluator_sanity_test.go
+    |-- evaluator_unit_test.go
+|-- go.mod
+|-- lexer
+    |-- README.md
+    |-- lexer.go
+    |-- lexer_benchmakr_test.go
+    |-- lexer_integration_test.go
+    |-- lexer_sanity_test.go
+    |-- lexer_unit_test.go
+|-- main.go
+|-- object
+    |-- README.md
+    |-- environment.go
+    |-- environment_unit_test.go
+    |-- object.go
+    |-- object_benchmark_test.go
+    |-- object_integration_test.go
+    |-- object_sanity-test.go
+    |-- object_unit_test.go
+|-- parser
+    |-- README.md
+    |-- parser.go
+    |-- parser_benchmark_test.go
+    |-- parser_integration_test.go
+    |-- parser_sanity_test.go
+    |-- parser_unit_test.go
+|-- repl
+    |-- README.md
+    |-- repl.go
+    |-- repl_benchmark_test.go
+    |-- repl_integration_test.go
+    |-- repl_sanity_test.go
+    |-- repl_unit_test.go
+|-- tests
+    |-- README.md
+    |-- main_benchmark_test.go
+    |-- system_test.go
+|-- token
+    |-- README.md
+    |-- token.go
+    |-- token_benchmark_test.go
+    |-- token_edge_test.go
+    |-- token_integration_test.go
+    |-- token_sanity_test.go
+    |-- token_unit_test.go
