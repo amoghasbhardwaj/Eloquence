@@ -1,49 +1,37 @@
-# ==============================================================================
-# FILE: .github/workflows/go.yml
-# ==============================================================================
-# PURPOSE: GitHub Actions workflow for Continuous Integration (CI).
-#          Automatically builds, tests, and benchmarks the Eloquence project
-#          on every push to the repository and every pull request.
-# ==============================================================================
-
 name: Eloquence CI
 
-# Configure when this workflow runs
 on:
   push:
-    branches: [ "main" ] # Run on pushes to the main branch
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ] # Run on pull requests targeting the main branch
+    branches: [ "main" ]
 
-# Define the jobs to be executed
 jobs:
-  build_and_test:
-    name: Build & Test
-    runs-on: ubuntu-latest # Run on a fresh Ubuntu virtual machine
-
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v3 # Action to clone the repository
+      uses: actions/checkout@v4
 
-    - name: Set up Go Environment
-      uses: actions/setup-go@v4 # Action to install a specific Go version
+    - name: Set up Go
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.20' # Specify the Go version to use (matching go.mod)
-        cache: true # Enable caching for Go modules for faster builds
+        go-version: '1.23' # Matches go.mod
+        cache: true
 
-    - name: Download Go Modules
-      run: go mod download # Download project dependencies
+    - name: Download Dependencies
+      run: go mod download
 
-    - name: Run All Tests (Unit, Integration, Sanity)
-      # -v for verbose output, ensuring all test details are shown
+    - name: Verify Dependencies
+      run: go mod verify
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
       run: go test -v ./...
 
-    - name: Run System Tests
-      # Specifically run the system-level tests in the 'tests' directory
-      run: go test -v ./tests
-
-    - name: Run Benchmarks
-      # -bench=. runs all benchmarks, -benchmem shows memory allocations
-      run: go test -bench=. -benchmem ./...
-      # Capture benchmark results if you want to track performance trends
-      # For example, using a benchmark analysis tool or uploading artifacts
+    - name: Benchmark
+      run: go test -bench=. ./...

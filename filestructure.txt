@@ -2,6 +2,9 @@
 |-- .github
     |-- workflows
         |-- go.yml
+|-- CODE_OF_CONDUCT.md
+|-- CONTRIBUTING.md
+|-- LICENSE
 |-- README.md
 |-- ast
     |-- README.md
