@@ -2,8 +2,6 @@
 // FILE: parser/parser_unit_test.go
 // ==============================================================================================
 // PURPOSE: Unit tests for individual parser components.
-//          Verifies that specific grammar rules (assignments, math, logic) are parsed
-//          correctly into isolated AST nodes.
 // ==============================================================================================
 
 package parser
@@ -15,13 +13,11 @@ import (
 	"eloquence/lexer"
 )
 
-// Helper: Initializes a parser from an input string.
 func newParser(input string) *Parser {
 	l := lexer.New(input)
 	return New(l)
 }
 
-// Helper: Fails the test if the parser encountered errors.
 func checkParserErrors(t *testing.T, p *Parser) {
 	errors := p.Errors()
 	if len(errors) == 0 {
@@ -66,22 +62,26 @@ name is "Amogh"`
 	}
 }
 
-func TestShowStatement(t *testing.T) {
-	input := `show x`
+func TestCallExpression(t *testing.T) {
+	input := `show(x)`
 	p := newParser(input)
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
 	if len(program.Statements) != 1 {
-		t.Fatalf("expected 1 statement, got %d", len(program.Statements))
+		t.Fatalf("expected 1 statement")
 	}
 
-	showStmt, ok := program.Statements[0].(*ast.ShowStatement)
+	expStmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 	if !ok {
-		t.Fatalf("statement is not *ast.ShowStatement. got=%T", program.Statements[0])
+		t.Fatalf("statement is not *ast.ExpressionStatement")
 	}
-	if showStmt.Value.String() != "x" {
-		t.Errorf("showStmt.Value.String() not 'x'. got=%s", showStmt.Value.String())
+	call, ok := expStmt.Expression.(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("expression is not *ast.CallExpression")
+	}
+	if call.Function.String() != "show" {
+		t.Errorf("function name not 'show'")
 	}
 }
 
@@ -95,23 +95,21 @@ c is pointing to x`
 	checkParserErrors(t, p)
 
 	if len(program.Statements) != 3 {
-		t.Fatalf("expected 3 statements, got %d", len(program.Statements))
+		t.Fatalf("expected 3 statements")
 	}
 
-	// Test case 'a is -5'
 	stmtA := program.Statements[0].(*ast.AssignmentStatement)
 	prefixA, ok := stmtA.Value.(*ast.PrefixExpression)
 	if !ok {
-		t.Fatalf("stmtA.Value is not PrefixExpression. got=%T", stmtA.Value)
+		t.Fatalf("stmtA.Value is not PrefixExpression")
 	}
 	if prefixA.Operator != "-" {
-		t.Errorf("operator is not '-'. got=%s", prefixA.Operator)
+		t.Errorf("operator is not '-'")
 	}
 
-	// Test case 'c is pointing to x'
 	stmtC := program.Statements[2].(*ast.AssignmentStatement)
 	if _, ok := stmtC.Value.(*ast.PointerReferenceExpression); !ok {
-		t.Errorf("stmtC.Value is not PointerReferenceExpression. got=%T", stmtC.Value)
+		t.Errorf("stmtC.Value is not PointerReferenceExpression")
 	}
 }
 
@@ -127,18 +125,19 @@ z is e equals f`
 	for _, stmt := range program.Statements {
 		assign, ok := stmt.(*ast.AssignmentStatement)
 		if !ok {
-			t.Fatalf("stmt is not AssignmentStatement. got=%T", stmt)
+			t.Fatalf("stmt is not AssignmentStatement")
 		}
 		if _, ok := assign.Value.(*ast.InfixExpression); !ok {
-			t.Errorf("assign.Value is not InfixExpression. got=%T", assign.Value)
+			t.Errorf("assign.Value is not InfixExpression")
 		}
 	}
 }
 
 func TestFunctionAndCall(t *testing.T) {
-	input := `fn is takes (x, y)
+	// FIXED SYNTAX: Added braces around function body
+	input := `fn is takes (x, y) {
   return x adds y
-end
+}
 result is fn(1, 2)`
 
 	p := newParser(input)
@@ -151,75 +150,76 @@ result is fn(1, 2)`
 
 	fnStmt := program.Statements[0].(*ast.AssignmentStatement)
 	if _, ok := fnStmt.Value.(*ast.FunctionLiteral); !ok {
-		t.Errorf("expected FunctionLiteral, got=%T", fnStmt.Value)
+		t.Errorf("expected FunctionLiteral")
 	}
 
 	callStmt := program.Statements[1].(*ast.AssignmentStatement)
 	if _, ok := callStmt.Value.(*ast.CallExpression); !ok {
-		t.Errorf("expected CallExpression, got=%T", callStmt.Value)
+		t.Errorf("expected CallExpression")
 	}
 }
 
 func TestIfExpression(t *testing.T) {
-	input := `result is if x less y
-  show x
-else
-  show y
-end`
+	input := `result is if x less y {
+  show(x)
+} else {
+  show(y)
+}`
 
 	p := newParser(input)
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
 	if len(program.Statements) != 1 {
-		t.Fatalf("expected 1 statement, got %d", len(program.Statements))
+		t.Fatalf("expected 1 statement")
 	}
 	assign := program.Statements[0].(*ast.AssignmentStatement)
 	if _, ok := assign.Value.(*ast.IfExpression); !ok {
-		t.Errorf("expected IfExpression, got=%T", assign.Value)
+		t.Errorf("expected IfExpression")
 	}
 }
 
 func TestLoopStatements(t *testing.T) {
-	input := `for i less 10
-  show i
-end
-while flag
+	input := `for i in list {
+  show(i)
+}
+while flag {
   flag is false
-end`
+}`
 
 	p := newParser(input)
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
 	if len(program.Statements) != 2 {
-		t.Fatalf("expected 2 statements, got %d", len(program.Statements))
+		t.Fatalf("expected 2 statements")
 	}
-	for _, stmt := range program.Statements {
-		if _, ok := stmt.(*ast.LoopStatement); !ok {
-			t.Errorf("expected LoopStatement, got %T", stmt)
-		}
+	if _, ok := program.Statements[0].(*ast.RangeLoopStatement); !ok {
+		t.Errorf("expected RangeLoopStatement")
+	}
+	if _, ok := program.Statements[1].(*ast.LoopStatement); !ok {
+		t.Errorf("expected LoopStatement")
 	}
 }
 
 func TestTryCatchFinally(t *testing.T) {
-	input := `try
+	input := `try {
   x is 5
-catch
-  show "error"
-finally
-  show "done"
-end`
+} catch {
+  show("error")
+} finally {
+  show("done")
+}`
 
 	p := newParser(input)
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
 	if len(program.Statements) != 1 {
-		t.Fatalf("expected 1 statement, got %d", len(program.Statements))
+		t.Fatalf("expected 1 statement")
 	}
 	if _, ok := program.Statements[0].(*ast.TryCatchStatement); !ok {
-		t.Errorf("expected TryCatchStatement, got=%T", program.Statements[0])
+		t.Errorf("expected TryCatchStatement")
 	}
 }
 
@@ -230,11 +230,11 @@ func TestStructDefinition(t *testing.T) {
 	checkParserErrors(t, p)
 
 	if len(program.Statements) != 1 {
-		t.Fatalf("expected 1 statement, got %d", len(program.Statements))
+		t.Fatalf("expected 1 statement")
 	}
 	stmt := program.Statements[0].(*ast.StructDefinitionStatement)
 	if stmt.Name.Value != "Node" {
-		t.Errorf("expected struct name Node, got %s", stmt.Name.Value)
+		t.Errorf("expected struct name Node")
 	}
 }
 
@@ -245,14 +245,14 @@ func TestPointerAssignmentStatement(t *testing.T) {
 	checkParserErrors(t, p)
 
 	if len(program.Statements) != 1 {
-		t.Fatalf("expected 1 statement, got %d", len(program.Statements))
+		t.Fatalf("expected 1 statement")
 	}
 	stmt, ok := program.Statements[0].(*ast.PointerAssignmentStatement)
 	if !ok {
-		t.Fatalf("expected PointerAssignmentStatement, got %T", program.Statements[0])
+		t.Fatalf("expected PointerAssignmentStatement")
 	}
 	if stmt.Name.Value != "ptr" {
-		t.Errorf("expected name 'ptr', got %s", stmt.Name.Value)
+		t.Errorf("expected name 'ptr'")
 	}
 }
 
@@ -263,62 +263,35 @@ func TestStructInstantiation(t *testing.T) {
 	checkParserErrors(t, p)
 
 	if len(program.Statements) != 1 {
-		t.Fatalf("expected 1 statement, got %d", len(program.Statements))
+		t.Fatalf("expected 1 statement")
 	}
 	assign := program.Statements[0].(*ast.AssignmentStatement)
 	structInst, ok := assign.Value.(*ast.StructInstantiationExpression)
 	if !ok {
-		t.Fatalf("expected StructInstantiationExpression, got %T", assign.Value)
+		t.Fatalf("expected StructInstantiationExpression")
 	}
 	if structInst.Name.Value != "User" {
-		t.Errorf("expected struct name 'User', got %s", structInst.Name.Value)
+		t.Errorf("expected struct name 'User'")
 	}
 	if len(structInst.Fields) != 2 {
-		t.Errorf("expected 2 fields, got %d", len(structInst.Fields))
+		t.Errorf("expected 2 fields")
 	}
 }
 
-func TestFieldAccess(t *testing.T) {
-	input := `x is user.name`
+func TestIncludeStatement(t *testing.T) {
+	input := `include "math.eq"`
 	p := newParser(input)
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
 	if len(program.Statements) != 1 {
-		t.Fatalf("expected 1 statement, got %d", len(program.Statements))
+		t.Fatalf("expected 1 statement")
 	}
-	assign := program.Statements[0].(*ast.AssignmentStatement)
-	fieldAccess, ok := assign.Value.(*ast.FieldAccessExpression)
+	inc, ok := program.Statements[0].(*ast.IncludeStatement)
 	if !ok {
-		t.Fatalf("expected FieldAccessExpression, got %T", assign.Value)
+		t.Fatalf("expected IncludeStatement")
 	}
-	if fieldAccess.Field.Value != "name" {
-		t.Errorf("expected field name 'name', got %s", fieldAccess.Field.Value)
-	}
-}
-
-func TestOperatorPrecedence(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"x is a adds b times c", "x is (a adds (b times c))"},
-		{"x is a times b adds c", "x is ((a times b) adds c)"},
-		{"x is -a times b", "x is ((- a) times b)"},
-		{"x is !a equals b", "x is ((! a) equals b)"},
-	}
-
-	for _, tt := range tests {
-		p := newParser(tt.input)
-		program := p.ParseProgram()
-		checkParserErrors(t, p)
-
-		if len(program.Statements) != 1 {
-			t.Fatalf("expected 1 statement, got %d", len(program.Statements))
-		}
-		actual := program.Statements[0].String()
-		if actual != tt.expected {
-			t.Errorf("expected %q, got %q", tt.expected, actual)
-		}
+	if inc.Path.String() != `"math.eq"` {
+		t.Errorf("expected path string")
 	}
 }

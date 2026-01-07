@@ -14,7 +14,9 @@ import "testing"
 func BenchmarkLookupIdent(b *testing.B) {
 	// A mix of keywords and identifiers typical in code
 	words := []string{
-		"if", "adds", "subtracts", "pointing to", "unknown_var", "myFunction", "return",
+		"if", "adds", "subtracts",
+		"pointing to", "include", "in",
+		"unknown_var", "myFunction", "return",
 	}
 
 	b.ResetTimer()

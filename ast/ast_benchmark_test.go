@@ -4,8 +4,7 @@
 // PURPOSE: Performance benchmarks for the Abstract Syntax Tree (AST).
 //          These tests measure the efficiency of the .String() methods, which involves
 //          recursive tree traversal and string concatenation.
-//          High performance here is important for logging, debugging, and potentially
-//          code formatting tools.
+//          High performance here is important for logging, debugging, and code formatting tools.
 // ==============================================================================================
 
 package ast
@@ -42,13 +41,29 @@ func BenchmarkInfixExpressionString(b *testing.B) {
 // of printing a moderately sized source file.
 // Usage: go test -bench=BenchmarkLargeProgramString ./ast
 func BenchmarkLargeProgramString(b *testing.B) {
-	// Construct a program with 100 "show 1" statements
-	prog := &Program{}
-	for i := 0; i < 100; i++ {
-		prog.Statements = append(prog.Statements, &ShowStatement{
-			Token: token.Token{Type: token.SHOW, Literal: "show"},
-			Value: &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "1"}, Value: 1},
-		})
+	// Construct a program with 1000 "show(1)" statements
+	count := 1000
+	prog := &Program{Statements: make([]Statement, count)}
+
+	// Create a reusable statement: show(1)
+	// This corresponds to an ExpressionStatement containing a CallExpression
+	stmt := &ExpressionStatement{
+		Token: token.Token{Type: token.IDENT, Literal: "show"},
+		Expression: &CallExpression{
+			Token: token.Token{Type: token.LPAREN, Literal: "("},
+			Function: &Identifier{
+				Token: token.Token{Type: token.IDENT, Literal: "show"},
+				Value: "show",
+			},
+			Arguments: []Expression{
+				&IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "1"}, Value: 1},
+			},
+		},
+	}
+
+	// Fill the program
+	for i := 0; i < count; i++ {
+		prog.Statements[i] = stmt
 	}
 
 	b.ResetTimer()

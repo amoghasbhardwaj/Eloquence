@@ -1,6 +1,12 @@
-// ----------------------------------------------------------------------------
+// ==============================================================================================
 // FILE: lexer/lexer.go
-// ----------------------------------------------------------------------------
+// ==============================================================================================
+// PACKAGE: lexer
+// PURPOSE: Performs lexical analysis on the source code.
+//          It converts a stream of raw characters (source code) into a stream of tokens
+//          (meaningful units) for the Parser.
+// ==============================================================================================
+
 package lexer
 
 import (
@@ -135,6 +141,7 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Line = l.line
 			tok.Column = l.column
 			tok.Literal = l.readIdentifier()
+			// Resolve whether the identifier is a keyword (e.g. "if") or a user variable
 			tok.Type = token.LookupIdent(tok.Literal)
 			return tok
 		} else if unicode.IsDigit(l.ch) {

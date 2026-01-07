@@ -1,136 +1,202 @@
-# Object System - Eloquence Programming Language
+<!-- ======================================================== -->
+<!-- Object Package README — Eloquence Programming Language -->
+<!-- ======================================================== -->
 
-The **object** package defines the runtime representation of all data values within the Eloquence language. In Eloquence, every value—from simple integers to complex functions and structs—is an `Object` that implements a common interface.
+<p align="center">
+  <img src="https://img.shields.io/badge/Eloquence-English--First%20Language-2f80ed?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Package-Object%20System-6fcf97?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Stage-Runtime%20Representation-111111?style=for-the-badge" />
+</p>
 
-This package also implements the **Environment**, which handles variable storage, scoping rules, and memory management during program execution.
+---
+
+# Object System  
+## Eloquence Programming Language
+
+The **object** package defines the **runtime representation** of all data values in Eloquence.  
+
+Every value—from simple integers to functions, structs, and pointers—is an `Object` implementing a common interface.  
+
+It also provides the **Environment** to handle variable storage, scoping, memory management, and closure state.
+
+---
 
 ## Table of Contents
 
-1.  Overview
-2.  Folder Structure
-3.  Core Architecture
-4.  Data Types
-5.  Memory & Scoping (The Environment)
-6.  Hashing System
-7.  Testing Strategy
-8.  Performance Benchmarks
-9.  How to Run Tests
+1. [Overview](#1-overview)  
+2. [Folder Structure](#2-folder-structure)  
+3. [Core Architecture](#3-core-architecture)  
+4. [Data Types](#4-data-types)  
+5. [Memory & Scoping (The Environment)](#5-memory--scoping-the-environment)  
+6. [Hashing System](#6-hashing-system)  
+7. [Testing Strategy](#7-testing-strategy)  
+8. [Performance Benchmarks](#8-performance-benchmarks)  
+9. [How to Run Tests](#9-how-to-run-tests)  
 
 ---
 
-## Overview
+## 1. Overview
 
-The Object System provides a unified type hierarchy for the interpreter. It allows the `Evaluator` to treat distinct data types polymorphically.
+The Object System provides a unified type hierarchy for the interpreter.  
 
-**Key Responsibilities:**
-*   **Type Identity**: Every object knows its own type (`INTEGER`, `BOOLEAN`, `FUNCTION`, etc.).
-*   **Inspection**: Every object can serialize itself back into a readable string format for debugging and output.
-*   **State Management**: The Environment struct manages the lifecycle of these objects across different scopes (global, local, closure).
+Key responsibilities:
 
----
-
-## Folder Structure
-
-*   **object.go**: Definitions of all object structs (`Integer`, `String`, `Array`, `Function`, etc.) and the `Object` interface.
-*   **environment.go**: Implementation of the `Environment` struct, including `Get`, `Set`, and scope extension logic.
-*   **object_unit_test.go**: Verifies `Inspect()` output and `Type()` identification for all object variants.
-*   **object_integration_test.go**: Tests complex interactions like storing structs in environments and using objects as map keys.
-*   **object_sanity_test.go**: Checks edge cases like empty collections and deeply nested environments to prevent stack overflows.
-*   **object_benchmark_test.go**: Measures the performance of object creation, hashing, and environment lookups.
-*   **environment_unit_test.go**: Specifically validates variable shadowing and scope traversal rules.
+- **Type Identity**: Every object knows its type constant (`INTEGER`, `BOOLEAN`, `FUNCTION`, etc.).  
+- **Inspection**: Objects can serialize themselves for debugging, REPL output, and errors.  
+- **State Management**: `Environment` tracks object lifecycles, scopes, and pointer references.
 
 ---
 
-## Core Architecture
+## 2. Folder Structure
 
-### The Object Interface
+```
+object/
+├── object.go
+├── builtins.go
+├── environment.go
+├── object_unit_test.go
+├── object_integration_test.go
+├── object_sanity_test.go
+├── object_benchmark_test.go
+└── environment_unit_test.go
+```
 
-Every value in Eloquence must implement this interface:
-
-    type Object interface {
-        Type() ObjectType  // Returns the internal type constant (e.g., INTEGER_OBJ)
-        Inspect() string   // Returns a string representation (e.g., "10", "true")
-    }
+| File | Purpose |
+|---|---|
+| `object.go` | Definitions of `Object` interface & data structs (Integer, Function, etc.) |
+| `builtins.go` | Standard library (`show`, `append`, `len`) |
+| `environment.go` | Variable storage (`Get`/`Set`), scope extension, pointer resolution |
+| `object_unit_test.go` | Verifies `Inspect()` output & type constants |
+| `object_integration_test.go` | Tests complex interactions (Maps, Struct nesting) |
+| `environment_unit_test.go` | Validates scoping, shadowing, closures |
+| `object_benchmark_test.go` | Measures hashing & environment lookup performance |
 
 ---
 
-## Data Types
+## 3. Core Architecture
+
+### Object Interface
+
+```go
+type Object interface {
+    Type() ObjectType  // Returns internal type constant
+    Inspect() string   // Returns string representation (e.g., "10", "true")
+}
+```
+
+This allows the Evaluator to manipulate `[]Object` or `map[string]Object` without caring about the concrete Go type.
+
+---
+
+## 4. Data Types
 
 ### Primitive Types
-*   **Integer**: 64-bit signed integers.
-*   **Float**: 64-bit floating-point numbers.
-*   **Boolean**: True/False values.
-*   **String**: UTF-8 string literals.
-*   **Char**: Single UTF-8 characters (runes).
-*   **Null**: Represents the absence of a value (`none`).
+
+- **Integer**: 64-bit signed integers  
+- **Float**: 64-bit floating-point numbers  
+- **Boolean**: `true` / `false`  
+- **String**: UTF-8 string literals  
+- **Char**: Single UTF-8 rune  
+- **Null**: Represents absence of value (`none`)  
 
 ### Composite Types
-*   **Array**: An ordered list of objects.
-*   **Map**: A hash map supporting Integers, Strings, and Booleans as keys.
-*   **Struct**: Custom user-defined data structures (`StructDefinition` and `StructInstance`).
+
+- **Array**: Ordered list of Objects  
+- **Map**: Hash map (Integer, String, Boolean keys)  
+- **StructDefinition**: Blueprint of a struct  
+- **StructInstance**: Concrete instance containing data fields  
 
 ### Internal Types
-*   **ReturnValue**: A wrapper used to transport values out of nested block statements.
-*   **Error**: Represents runtime errors to stop execution.
-*   **Function**: First-class functions supporting closures (capturing their definition environment).
-*   **Pointer**: Holds a reference to a variable name and its specific environment scope.
+
+- **ReturnValue**: Wraps return values for block statements  
+- **Error**: Runtime error objects (division by zero, type mismatch)  
+- **Function**: First-class function with closure environment  
+- **Pointer**: Reference to variable & scope for pass-by-reference  
+
+### Built-in Functions
+
+- **Builtin**: Wraps native Go functions callable from Eloquence (`show`, `append`, etc.)
 
 ---
 
-## Memory & Scoping (The Environment)
+## 5. Memory & Scoping (The Environment)
 
-The `Environment` is a hash map string-to-object store that supports lexical scoping via a linked-list structure.
+```go
+type Environment struct {
+    store map[string]Object // Local variables
+    outer *Environment      // Parent scope
+}
+```
 
-    type Environment struct {
-        store map[string]Object // Local variables
-        outer *Environment      // Pointer to the parent scope
-    }
+### Rules
 
-### Scoping Rules
-1.  **Global Scope**: The root environment.
-2.  **Local Scope**: Created for function calls and blocks.
-3.  **Shadowing**: Writing to a variable in an inner scope creates a new variable, protecting the outer scope (unless pointers are used).
-4.  **Lookup**: `Get(name)` searches the current scope; if not found, it recursively checks the `outer` scope.
-
----
-
-## Hashing System
-
-To support Maps, objects that can be used as keys must implement the `Hashable` interface.
-
-    type Hashable interface {
-        HashKey() HashKey
-    }
-
-This uses the **FNV-1a** hash algorithm for strings and direct value mapping for integers/booleans to ensure O(1) map access speeds.
+1. **Global Scope**: Root environment at program start  
+2. **Local Scope**: Created in functions or blocks  
+3. **Lookup (`Get`)**: Checks current store, then recursively outer scopes  
+4. **Shadowing**: New variable in inner scope preserves outer value  
+5. **Mutation**: `Pointer` object references specific environment for updates  
 
 ---
 
-## Testing Strategy
+## 6. Hashing System
+
+To support Maps, hashable objects implement:
+
+```go
+type Hashable interface {
+    HashKey() HashKey
+}
+
+type HashKey struct {
+    Type  ObjectType
+    Value uint64
+}
+```
+
+### Algorithm
+
+- **Integer/Boolean**: Direct value  
+- **String**: FNV-1a non-cryptographic hash  
+
+Ensures O(1) map access and minimal collisions.
+
+---
+
+## 7. Testing Strategy
 
 | Test Suite | Focus | Pass Criteria |
-| :--- | :--- | :--- |
-| `object_unit_test` | Representation | `Inspect()` returns the exact string format expected by the REPL. |
-| `environment_unit_test` | Scoping | Inner scopes can read outer variables but cannot overwrite them without explicit shadowing. |
-| `object_integration_test` | Complexity | Structs can be stored in variables and retrieved with fields intact. |
-| `object_benchmark_test` | Latency | Environment lookups remain fast even with 50+ layers of nesting. |
+|---|---|---|
+| `object_unit_test` | Representation | `Inspect()` returns correct string |
+| `environment_unit_test` | Scoping | Inner scopes read outer variables; shadowing correct |
+| `object_integration_test` | Complexity | Structs, arrays, maps maintain integrity |
+| `object_sanity_test` | Edge Cases | Deeply nested structures and empty collections don't crash |
 
 ---
 
-## Performance Benchmarks
+## 8. Performance Benchmarks
 
-    BenchmarkEnvironment_Get_Deep-12    50000000    30 ns/op
-    BenchmarkHashKey_String-12          30000000    40 ns/op
+```
+BenchmarkEnvironment_Get_Deep-12    50000000    30 ns/op
+BenchmarkHashKey_String-12          30000000    40 ns/op
+```
 
-*   **Deep Lookup**: Even with deep recursion, variable access remains nanosecond-scale.
-*   **Hashing**: String hashing is optimized to allow fast map lookups.
+**Observations:**
+
+- Deep nested lookups remain nanosecond-scale  
+- String hashing optimized for high-performance map access  
 
 ---
 
-## How to Run Tests
+## 9. How to Run Tests
 
-    # Run all object system tests
-    go test -v ./object
+Run all object system tests:
 
-    # Run benchmarks
-    go test -bench=. ./object
+```bash
+go test -v ./object
+```
+
+Run benchmarks:
+
+```bash
+go test -bench=. ./object
+```

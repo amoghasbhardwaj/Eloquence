@@ -1,113 +1,140 @@
-# System Tests - Eloquence Programming Language
+# System Tests  
+## Eloquence Programming Language
 
-This documentation covers the system-level integration tests (`system_test.go`) and benchmarks (`main_benchmark_test.go`). Unlike unit tests found within specific packages (token, lexer, ast, parser, evaluator), these tests verify the entire compiler pipeline working in unison.
+This documentation covers the **system-level integration tests** (`system_test.go`) and **benchmarks** (`main_benchmark_test.go`).
 
-They serve as the "Turing Completeness" verification for the language, ensuring that all components interact correctly to solve actual computational problems.
+Unlike unit tests within specific packages, these tests verify the **entire compiler pipeline** in unison. They act as a "Turing Completeness" verification, ensuring all components interact correctly to solve real computational problems.
+
+---
 
 ## Table of Contents
 
-1.  Overview
-2.  Test Categories
-3.  Key Test Scenarios
-4.  Benchmark Performance
-5.  How to Run
+1. [Overview](#1-overview)  
+2. [Test Categories](#2-test-categories)  
+3. [Key Test Scenarios](#3-key-test-scenarios)  
+4. [Benchmark Performance](#4-benchmark-performance)  
+5. [How to Run](#5-how-to-run)  
 
 ---
 
-## Overview
+## 1. Overview
 
-System tests execute the full lifecycle of an Eloquence program:
-1.  **Source Input**: Raw string representing code.
-2.  **Lexing**: Converted to tokens.
-3.  **Parsing**: Built into an AST.
-4.  **Evaluation**: Executed against a live Environment.
-5.  **Assertion**: The final Object result is compared against Go native types.
+System tests execute the **full lifecycle of an Eloquence program**:
 
-These tests detect regressions that might pass individual unit tests but fail when components interact (e.g., scoping issues between Parser and Evaluator).
+```
+Source Code → Lexer → Parser → AST → Evaluator → Object Result → Assertion
+```
 
----
+Steps:
 
-## Test Categories
+1. **Source Input**: Raw Eloquence code string.  
+2. **Lexing**: Converted into a token stream.  
+3. **Parsing**: Tokens are structured into an AST.  
+4. **Evaluation**: AST is executed in a live Environment.  
+5. **Assertion**: The resulting Object is compared against Go native types.  
 
-The system tests are divided into four specific architectural pillars:
-
-### 1. Algorithmic Logic
-Verifies recursion, arithmetic precedence, and conditional branching.
-*   **Goal**: Ensure the language can solve mathematical problems.
-
-### 2. Higher-Order Functions
-Verifies first-class functions, closures, and passing functions as arguments.
-*   **Goal**: Ensure functional programming capabilities (Map/Reduce patterns).
-
-### 3. Data Structures
-Verifies Struct definitions, instantiation, and recursive type references.
-*   **Goal**: Ensure complex data modeling (e.g., Linked Lists, Trees).
-
-### 4. Memory Management
-Verifies the manual pointer system (`pointing to`, `pointing from`) and variable shadowing rules.
-*   **Goal**: Ensure reference semantics work alongside value semantics.
+These tests catch regressions that may pass unit tests but fail during component interaction, such as **scope resolution or pointer behavior**.
 
 ---
 
-## Key Test Scenarios
+## 2. Test Categories
 
-The following scenarios from `system_test.go` illustrate the language capabilities being verified.
+System tests are organized into four architectural pillars:
 
-### Fibonacci Sequence (Recursion)
-Tests stack depth, function calls, and integer arithmetic.
-
-    fib is takes(x)
-        if x less 2
-            return x
-        end
-        return fib(x minus 1) adds fib(x minus 2)
-    end
-    fib(10)
-
-### Linked List Traversal (Structs)
-Tests struct field access and handling of `none` (null) values.
-
-    define Node as struct { val, next }
-    head is Node { val: 10, next: none }
-    
-    // Traversal logic
-    sumList is takes(node)
-        if node equals none
-            return 0
-        end
-        return node.val adds sumList(node.next)
-    end
-
-### Pointer Mutation
-Tests that a pointer can modify a variable defined in an outer scope.
-
-    globalVal is 100
-    ptr is pointing to globalVal
-    pointing from ptr is 999
-    // globalVal is now 999
+| Category | Focus | Goal |
+|----------|-------|------|
+| Algorithmic Logic | Recursion, arithmetic, conditional branching | Ensure Eloquence solves math problems correctly |
+| Higher-Order Functions | First-class functions, closures, function arguments | Support functional programming patterns (Map/Reduce) |
+| Data Structures | Structs, instantiation, recursion | Enable complex user-defined data modeling |
+| Memory Management | Pointers (`pointing to/from`), variable shadowing | Ensure reference semantics work correctly alongside value semantics |
 
 ---
 
-## Benchmark Performance
+## 3. Key Test Scenarios
 
-Benchmarks in `main_benchmark_test.go` stress-test the pipeline under heavy load.
+### 3.1 Fibonacci Sequence (Recursion)
+
+Tests stack depth, function calls, and arithmetic.
+
+```eloquence
+fib is takes(x) {
+    if x less 2 {
+        return x
+    }
+    return fib(x minus 1) adds fib(x minus 2)
+}
+fib(10)  // Expected: 55
+```
+
+---
+
+### 3.2 Linked List Traversal (Structs)
+
+Tests struct field access and handling of `none` values.
+
+```eloquence
+define Node as struct { val, next }
+
+head is Node { val: 10, next: none }
+
+// Traversal logic
+sumList is takes(node) {
+    if node equals none {
+        return 0
+    }
+    return node.val adds sumList(node.next)
+}
+sumList(head)  // Expected: 10
+```
+
+---
+
+### 3.3 Pointer Mutation
+
+Tests that pointers can modify variables in an outer scope.
+
+```eloquence
+globalVal is 100
+ptr is pointing to globalVal
+pointing from ptr is 999
+// globalVal is now 999
+```
+
+---
+
+## 4. Benchmark Performance
+
+Benchmarks in `main_benchmark_test.go` stress-test the **full pipeline**:
 
 | Benchmark | Description | Target Metric |
-| :--- | :--- | :--- |
-| **HeavyLoop** | Runs a loop 1000 times performing addition. | Iteration overhead. |
-| **DeepRecursion** | Recursively calls a function 200 times. | Stack frame allocation speed. |
-| **StringConcat** | Concatenates strings in a loop. | Heap allocation/GC pressure. |
+|-----------|------------|---------------|
+| HeavyLoop | Loop 1000 iterations performing addition | Iteration overhead, environment lookup speed |
+| DeepRecursion | Recursively calls a function 200 times | Stack frame allocation speed, memory safety |
+| StringConcat | Concatenates strings in a loop | Heap allocation efficiency, GC pressure |
 
 ---
 
-## How to Run
+## 5. How to Run
 
 ### Run System Tests
-To execute only the system-level verification:
 
-    go test -v system_test.go
+```bash
+go test -v system_test.go main.go
+```
 
 ### Run Benchmarks
-To measure the performance of the full interpreter pipeline:
 
-    go test -bench=. main_benchmark_test.go main.go
+```bash
+go test -bench=. main_benchmark_test.go main.go
+```
+
+---
+
+### Summary
+
+The **System Tests** ensure:
+
+- The **entire compiler pipeline** works correctly from source to evaluation.  
+- Recursive functions, closures, structs, and pointers behave correctly.  
+- Performance under loops, recursion, and memory-intensive operations meets design expectations.  
+- The language is robust, human-readable, and ready for real-world use.

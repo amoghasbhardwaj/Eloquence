@@ -4,6 +4,7 @@
 // PACKAGE: token
 // PURPOSE: Defines the vocabulary of the Eloquence programming language.
 //          It maps raw source code text to semantic meanings (Tokens).
+//          This file acts as the dictionary for the Lexer and Parser.
 // ==============================================================================================
 
 package token
@@ -88,11 +89,12 @@ const (
 	REPEAT  = "REPEAT"  // Start of repeat-loop
 	TAKES   = "TAKES"   // Function definition keyword (replaces 'func'/'def')
 	RETURNS = "RETURNS" // Function return type definition (optional)
-	SHOW    = "SHOW"    // Built-in print/output command
+	// NOTE: 'SHOW' is purposefully absent. It is handled as a built-in function (IDENT), not a keyword.
 	TRY     = "TRY"     // Start of error handling block
 	CATCH   = "CATCH"   // Handle errors
 	THROW   = "THROW"   // Raise errors
 	FINALLY = "FINALLY" // Always execute block
+	IN      = "IN"      // Used in range loops (for x IN list)
 
 	// Pointer Keywords
 	// ----------------
@@ -100,11 +102,12 @@ const (
 	POINTING_TO   = "POINTING_TO"   // Reference operator (replaces '&')
 	POINTING_FROM = "POINTING_FROM" // Dereference operator (replaces '*')
 
-	// Data Structure Keywords
-	// -----------------------
-	STRUCT = "STRUCT" // Defines a composite data type
-	DEFINE = "DEFINE" // Starts a definition statement
-	AS     = "AS"     // Linking word for definitions
+	// Data Structure & Module Keywords
+	// --------------------------------
+	STRUCT  = "STRUCT"  // Defines a composite data type
+	DEFINE  = "DEFINE"  // Starts a definition statement
+	AS      = "AS"      // Linking word for definitions
+	INCLUDE = "INCLUDE" // Imports code from another file
 )
 
 // keywords map connects the English string literals to their internal TokenType.
@@ -138,11 +141,12 @@ var keywords = map[string]TokenType{
 	"repeat":  REPEAT,
 	"takes":   TAKES,
 	"returns": RETURNS,
-	"show":    SHOW,
+	// "show" is deliberately excluded so it parses as a function identifier
 	"try":     TRY,
 	"catch":   CATCH,
 	"throw":   THROW,
 	"finally": FINALLY,
+	"in":      IN,
 
 	// Complex Keywords (Handled via specific lexer logic usually, but mapped here for consistency)
 	"pointing to":   POINTING_TO,
@@ -153,10 +157,11 @@ var keywords = map[string]TokenType{
 	"false": BOOL,
 	"none":  NIL,
 
-	// Structs
-	"struct": STRUCT,
-	"define": DEFINE,
-	"as":     AS,
+	// Structs & Modules
+	"struct":  STRUCT,
+	"define":  DEFINE,
+	"as":      AS,
+	"include": INCLUDE,
 }
 
 // LookupIdent checks if a given identifier string is a reserved keyword.

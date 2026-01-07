@@ -1,6 +1,9 @@
-// ----------------------------------------------------------------------------
+// ==============================================================================================
 // FILE: lexer/lexer_unit_test.go
-// ----------------------------------------------------------------------------
+// ==============================================================================================
+// PURPOSE: Validates that the Lexer correctly identifies all token types and literals.
+// ==============================================================================================
+
 package lexer
 
 import (
@@ -159,9 +162,9 @@ not flag
 	// --- SECTION 5: Control flow and output ---
 	input5 := `
 if x equals 10
-show x
+show(x)
 else
-show y
+show(y)
 end
 return x
 `
@@ -174,13 +177,19 @@ return x
 		{token.EQUALS, "equals"},
 		{token.INT, "10"},
 
-		{token.SHOW, "show"},
+		// UPDATED: 'show' is now an IDENT (Function Call)
+		{token.IDENT, "show"},
+		{token.LPAREN, "("},
 		{token.IDENT, "x"},
+		{token.RPAREN, ")"},
 
 		{token.ELSE, "else"},
 
-		{token.SHOW, "show"},
+		// UPDATED: 'show' is now an IDENT (Function Call)
+		{token.IDENT, "show"},
+		{token.LPAREN, "("},
 		{token.IDENT, "y"},
+		{token.RPAREN, ")"},
 
 		{token.END, "end"},
 

@@ -1,116 +1,220 @@
-# AST - Eloquence Programming Language
+<!-- ===================================================== -->
+<!-- AST Package README — Eloquence Programming Language -->
+<!-- ===================================================== -->
 
-The `ast` package serves as the **structural backbone** of the Eloquence compiler. It transforms a linear stream of tokens into a hierarchical tree representation. Each node in the tree represents a semantic component of the language—ranging from simple literal values to complex control flow structures.
+<p align="center">
+  <img src="https://img.shields.io/badge/Eloquence-English--First%20Language-2f80ed?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Package-AST-bb6bd9?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Stage-Structural%20Representation-111111?style=for-the-badge" />
+</p>
 
-By abstracting raw source code into this structured format, the AST allows the **Evaluator** and **Compiler** to navigate the logic of an Eloquence program with mathematical precision while retaining its English-first readability.
+---
+
+# AST Package  
+## Eloquence Programming Language
+
+The **AST** (Abstract Syntax Tree) package is the **structural backbone** of the Eloquence compiler.
+
+It transforms a **linear token stream** into a **hierarchical tree**, where each node represents a semantic unit—from literals to full control flow structures.
+
+By abstracting raw code into a tree:
+
+- The **Evaluator** can compute values efficiently  
+- The **Compiler** can reason about program logic  
+- English-first syntax is preserved in a structured format
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)  
+- [Folder Structure](#folder-structure)  
+- [Core Architecture](#core-architecture)  
+- [Language Constructs](#language-constructs)  
+  - [Statements](#statements)  
+  - [Expressions](#expressions)  
+- [Visual Flow of the AST](#visual-flow-of-the-ast)  
+- [Testing & Verification](#testing--verification)  
+- [Performance Benchmarks](#performance-benchmarks)  
+- [How to Run Tests](#how-to-run-tests)  
+
+---
+
+## Overview
+
+If **Tokens** are "words," the AST represents **sentences and paragraphs**.
+
+It enforces **syntax structure**, for example:
+
+- `if` statements must have a **Condition** and a **Consequence Block**  
+- `Functions` must include parameters and a body  
+- Operators are associated with operands
+
+### Example
+
+Source code:
+
+```eloquence
+x is 5 adds 10
+```
+
+AST (conceptual):
+
+```
+      AssignmentStatement
+      ├── Name: "x"
+      └── Value: InfixExpression
+          ├── Left: 5
+          ├── Operator: "adds"
+          └── Right: 10
+```
 
 ---
 
 ## Folder Structure
 
-To ensure a clean separation of concerns and maintain high testability, the package is organized as follows:
+```
+ast/
+├── ast.go
+├── ast_unit_test.go
+├── ast_integration_test.go
+├── ast_sanity_test.go
+└── ast_benchmark_test.go
+```
 
-* **ast.go**: The core definition file. It contains the node interfaces and the implementation of all Statement and Expression types.
-* **ast_unit_test.go**: Granular tests focusing on the correctness of individual leaf and branch nodes.
-* **ast_integration_test.go**: Validates the composition of nodes into full program structures.
-* **ast_sanity_test.go**: Stress-tests the AST with deeply nested recursions to ensure stability.
-* **ast_benchmark_test.go**: Measures the performance of string serialization and tree traversal.
+| File | Purpose |
+|------|--------|
+| `ast.go` | Node interfaces and struct definitions |
+| `ast_unit_test.go` | Basic literals and node tests |
+| `ast_integration_test.go` | Nested structures like Functions and Structs |
+| `ast_sanity_test.go` | Deep recursion stress tests |
+| `ast_benchmark_test.go` | String reconstruction speed |
 
 ---
 
 ## Core Architecture
 
-The AST is built on a strictly typed interface system that ensures every node can be serialized back to a string for debugging or analyzed for its token content.
+The AST is **strictly typed** with three main interfaces.
 
-### Node Interfaces
-
-| Interface | Purpose | Key Methods |
-| :--- | :--- | :--- |
-| **Node** | The base interface for every element in the tree. | `TokenLiteral()`, `String()` |
-| **Statement** | Represents an action or instruction that does not return a value. | `statementNode()` |
-| **Expression** | Represents a unit of code that evaluates to a specific value. | `expressionNode()` |
+| Interface | Role | Key Methods |
+|-----------|------|-------------|
+| **Node** | Base of all AST nodes | `TokenLiteral()`, `String()` |
+| **Statement** | Nodes performing actions | `statementNode()` |
+| **Expression** | Nodes evaluating to values | `expressionNode()` |
 
 ### Root Node: `Program`
-The `Program` node is the entry point of the AST. It contains a slice of `Statements`, representing the entirety of the source code.
+
+The `Program` node is the entry point:
+
+- Contains all top-level `Statements`  
+- Represents the **full source code**  
 
 ---
 
 ## Language Constructs
 
 ### Statements
-Statements define the "skeleton" of the program logic.
 
-| Node Type | Eloquence Syntax Example | Functional Role |
-| :--- | :--- | :--- |
-| `AssignmentStatement` | `x is 10` | Binds a value to an identifier. |
-| `ShowStatement` | `show x` | Standard output instruction. |
-| `LoopStatement` | `while x less 10 { ... }` | Iterative control flow. |
-| `StructDefinition` | `define Node as struct { ... }` | Custom data type schema. |
+Statements define **program structure**.
+
+| Node Type | Syntax Example | Purpose |
+|-----------|----------------|--------|
+| AssignmentStatement | `x is 10` | Bind value to a variable |
+| ReturnStatement | `return 10` | Exit function with a value |
+| LoopStatement | `while x < 10 { ... }` | Iterative control flow |
+| StructDefinition | `define Node as struct` | User-defined data type |
+| ExpressionStatement | `show(x)` | Wraps standalone expressions |
 
 ### Expressions
-Expressions are the "muscles" that perform calculations and return data.
 
-| Node Type | Eloquence Syntax Example | Functional Role |
-| :--- | :--- | :--- |
-| `InfixExpression` | `x adds y` | Binary operations (Arithmetic/Logic). |
-| `PointerReference` | `pointing to x` | Memory address referencing. |
-| `FunctionLiteral` | `takes (x) { ... }` | Anonymous function definition. |
-| `CallExpression` | `calculate(5, 10)` | Function invocation. |
+Expressions are **computational units**.
+
+| Node Type | Syntax Example | Purpose |
+|-----------|----------------|--------|
+| InfixExpression | `x adds y` | Binary arithmetic or logical operations |
+| PointerReference | `pointing to x` | Memory address reference |
+| FunctionLiteral | `takes (x) { ... }` | Anonymous function definition |
+| CallExpression | `calculate(5,10)` | Function invocation |
 
 ---
 
 ## Visual Flow of the AST
 
-The diagram below illustrates how a simple Eloquence statement is decomposed into an AST structure.
+**Input:** `x is 5 adds 10`
 
-    INPUT: "x is 5 adds 10"
-    
-          +-----------------------+
-          |  AssignmentStatement  |
-          +-----------+-----------+
-                      |
-           +----------+----------+
-           |                     |
-     [ Identifier ]      [ InfixExpression ]
-       Literal: "x"              |
-                        +--------+--------+
-                        |        |        |
-                    [Left]    [Op]    [Right]
-                      5      "adds"     10
+```
+      +-----------------------+
+      |  AssignmentStatement  |
+      +-----------+-----------+
+                  |
+       +----------+----------+
+       |                     |
+ [ Identifier ]      [ InfixExpression ]
+   Literal: "x"              |
+                    +--------+--------+
+                    |        |        |
+                [Left]    [Op]    [Right]
+                  5      "adds"     10
+```
 
 ---
 
-## Testing Matrix
+## Testing & Verification
 
-Our testing strategy ensures that as the language grows, the structural integrity of the tree remains intact.
+The AST is heavily tested to ensure correctness and stability.
 
 | Test File | Focus | Pass Criteria |
-| :--- | :--- | :--- |
-| `ast_unit_test.go` | Literals & Operators | Node `.String()` exactly matches the token literal. |
-| `ast_integration_test.go` | Nested Blocks & Programs | Recursive structures (If-Else in Loops) serialize correctly. |
-| `ast_sanity_test.go` | Deep Recursion | Tree handles 500+ levels of nesting without stack overflow. |
-| `ast_benchmark_test.go` | String Throughput | `.String()` execution remains sub-microsecond for common nodes. |
+|-----------|-------|---------------|
+| `ast_unit_test` | Literals | `.String()` matches token literal |
+| `ast_integration_test` | Nesting | Recursive structures serialize correctly |
+| `ast_sanity_test` | Stability | Handles 100+ levels of nesting without stack overflow |
+
+**Run all tests:**
+
+```bash
+go test -v ./ast
+```
+
+---
+
+## Performance Benchmarks
+
+Sample results:
+
+```text
+BenchmarkInfixExpressionString-12    40000000    30 ns/op
+```
+
+**Observation:**  
+String reconstruction is highly optimized for fast debugging and error reporting.
 
 ---
 
 ## How to Run Tests
 
-Navigate to the package directory and run the following commands:
+Run all AST tests:
 
-    # Run all tests (Unit, Integration, Sanity)
-    go test -v ./ast
+```bash
+go test -v ./ast
+```
 
-    # Run specifically by category
-    go test -v ast_unit_test.go ast.go
+Run benchmarks:
 
-    # Run performance benchmarks
-    go test -bench=. ./ast
+```bash
+go test -bench=. ./ast
+```
 
 ---
 
 ## Summary
 
-The **ast package** provides a robust, recursive, and human-readable representation of Eloquence source code. 
-* **English-First**: Nodes are named and structured to reflect natural language.
-* **Serialized**: Every node supports `.String()` for seamless debugging.
-* **Verified**: Comprehensive testing ensures the tree remains stable regardless of program complexity.
+The AST package:
+
+- Converts linear token streams into hierarchical trees  
+- Enforces English-first semantic structure  
+- Supports statements and expressions  
+- Handles deep nesting and recursion efficiently  
+- Provides a foundation for the Evaluator and Compiler
+
+It is the **structural core** of the Eloquence language —  
+the point where *words become meaningful logic*.

@@ -17,13 +17,13 @@ import (
 
 func TestIntegration_FactorialFunction(t *testing.T) {
 	input := `
-    factorial is takes (n)
-        if n less_equal 1
+    factorial is takes (n) {
+        if n less_equal 1 {
             return 1
-        else
+        } else {
             return n times factorial(n minus 1)
-        end
-    end
+        }
+    }
     
     result is factorial(5)`
 
@@ -73,9 +73,9 @@ func TestIntegration_StructsAndLogic(t *testing.T) {
     
     u is User { name: "Alice", age: 30 }
     
-    if u.age greater 18
-        show "Adult"
-    end`
+    if u.age greater 18 {
+        show("Adult")
+    }`
 
 	l := lexer.New(input)
 	p := New(l)
@@ -101,13 +101,13 @@ func TestIntegration_StructsAndLogic(t *testing.T) {
 	}
 
 	// 3. Logic with Field Access
-	ifExp, ok := program.Statements[2].(*ast.ExpressionStatement).Expression.(*ast.IfExpression)
+	ifStmt, ok := program.Statements[2].(*ast.ExpressionStatement).Expression.(*ast.IfExpression)
 	if !ok {
-		t.Errorf("expected IfExpression at 2")
+		t.Errorf("expected IfExpression at 2, got %T", program.Statements[2])
 	}
 
 	// Check condition: (u.age greater 18)
-	infix, ok := ifExp.Condition.(*ast.InfixExpression)
+	infix, ok := ifStmt.Condition.(*ast.InfixExpression)
 	if !ok {
 		t.Fatalf("condition not infix")
 	}

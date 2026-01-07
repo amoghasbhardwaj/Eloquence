@@ -21,29 +21,21 @@ import (
 // ----------------------------------------------------------------------------------------------
 
 // Node is the base interface for all elements in the Abstract Syntax Tree.
-// Every piece of code, from a simple integer to a complex function definition, is a Node.
 type Node interface {
-	// TokenLiteral returns the literal string of the token associated with this node.
-	// Used primarily for debugging and error reporting.
 	TokenLiteral() string
-
-	// String returns a string representation of the node.
-	// This reconstructs the original source code (or close to it) from the tree.
 	String() string
 }
 
 // Statement represents a node that performs an action but does not return a value.
-// Examples: "x is 10" (Assignment), "return x", "define User as struct".
 type Statement interface {
 	Node
-	statementNode() // Marker method to distinguish Statements from Expressions
+	statementNode() // Marker method
 }
 
 // Expression represents a node that evaluates to a value.
-// Examples: "5", "x adds y", "takes(x) { ... }".
 type Expression interface {
 	Node
-	expressionNode() // Marker method to distinguish Expressions from Statements
+	expressionNode() // Marker method
 }
 
 // ----------------------------------------------------------------------------------------------
@@ -51,9 +43,8 @@ type Expression interface {
 // ----------------------------------------------------------------------------------------------
 
 // Program is the root node of every AST.
-// It represents the entire source file as a sequence of statements.
 type Program struct {
-	Statements []Statement // The linear list of top-level statements
+	Statements []Statement
 }
 
 func (p *Program) TokenLiteral() string {
@@ -63,7 +54,6 @@ func (p *Program) TokenLiteral() string {
 	return ""
 }
 
-// String reconstructs the entire program source code.
 func (p *Program) String() string {
 	var out bytes.Buffer
 	for _, s := range p.Statements {
@@ -77,12 +67,11 @@ func (p *Program) String() string {
 // ----------------------------------------------------------------------------------------------
 
 // AssignmentStatement represents binding a value to a variable.
-// Syntax: <IDENTIFIER> is <EXPRESSION>
-// Example: x is 5
+// Syntax: x is 5
 type AssignmentStatement struct {
-	Token token.Token // The 'IDENT' token of the variable name (historical artifact of parsing)
-	Name  *Identifier // The variable being assigned to
-	Value Expression  // The value being assigned
+	Token token.Token // The 'IDENT' token
+	Name  *Identifier
+	Value Expression
 }
 
 func (as *AssignmentStatement) statementNode()       {}
@@ -92,10 +81,10 @@ func (as *AssignmentStatement) String() string {
 }
 
 // ReturnStatement represents exiting a function with a value.
-// Syntax: return <EXPRESSION>
+// Syntax: return 10
 type ReturnStatement struct {
-	Token       token.Token // The 'return' token
-	ReturnValue Expression  // The value to return (can be nil)
+	Token       token.Token
+	ReturnValue Expression
 }
 
 func (rs *ReturnStatement) statementNode()       {}
@@ -109,21 +98,8 @@ func (rs *ReturnStatement) String() string {
 	return out.String()
 }
 
-// ShowStatement is a built-in statement for printing to stdout.
-// Syntax: show <EXPRESSION>
-type ShowStatement struct {
-	Token token.Token // The 'show' token
-	Value Expression  // The expression to print
-}
-
-func (ss *ShowStatement) statementNode()       {}
-func (ss *ShowStatement) TokenLiteral() string { return ss.Token.Literal }
-func (ss *ShowStatement) String() string {
-	return "show " + ss.Value.String()
-}
-
 // ExpressionStatement allows an expression to stand alone as a statement.
-// Example: "x adds 5" on a line by itself (valid, though result is discarded unless implicit return).
+// Example: calls like show(x), or simple arithmetic on a line.
 type ExpressionStatement struct {
 	Token      token.Token // The first token of the expression
 	Expression Expression
@@ -138,10 +114,9 @@ func (es *ExpressionStatement) String() string {
 	return ""
 }
 
-// BlockStatement represents a grouped sequence of statements.
-// Used in If/Else blocks, Loops, and Function bodies.
+// BlockStatement represents a grouped sequence of statements (used in loops/if).
 type BlockStatement struct {
-	Token      token.Token // The opening delimiter (e.g., '{' or implicit start)
+	Token      token.Token // The '{' token
 	Statements []Statement
 }
 
@@ -156,11 +131,11 @@ func (bs *BlockStatement) String() string {
 }
 
 // PointerAssignmentStatement represents writing to a memory address.
-// Syntax: pointing from <IDENTIFIER> is <EXPRESSION>
+// Syntax: pointing from ptr is 5
 type PointerAssignmentStatement struct {
 	Token token.Token // The 'pointing from' token
-	Name  *Identifier // The pointer variable
-	Value Expression  // The new value
+	Name  *Identifier
+	Value Expression
 }
 
 func (pas *PointerAssignmentStatement) statementNode()       {}
@@ -170,11 +145,11 @@ func (pas *PointerAssignmentStatement) String() string {
 }
 
 // StructDefinitionStatement defines a new custom data type.
-// Syntax: define <NAME> as struct { <FIELDS> }
+// Syntax: define User as struct { name, age }
 type StructDefinitionStatement struct {
-	Token      token.Token   // The 'define' token
-	Name       *Identifier   // The name of the struct (e.g., "User")
-	Attributes []*Identifier // The list of field names
+	Token      token.Token
+	Name       *Identifier
+	Attributes []*Identifier
 }
 
 func (sds *StructDefinitionStatement) statementNode()       {}
@@ -192,11 +167,10 @@ func (sds *StructDefinitionStatement) String() string {
 	return out.String()
 }
 
-// LoopStatement represents a conditional loop.
-// Syntax: while <CONDITION> <BLOCK>
+// LoopStatement represents a conditional loop (while).
 type LoopStatement struct {
-	Token     token.Token // The 'while' or 'for' token
-	Condition Expression  // The loop guard
+	Token     token.Token // The 'while' token
+	Condition Expression
 	Body      *BlockStatement
 }
 
@@ -206,8 +180,22 @@ func (ls *LoopStatement) String() string {
 	return ls.Token.Literal + " " + ls.Condition.String() + " " + ls.Body.String()
 }
 
+// RangeLoopStatement represents iterating over a collection.
+// Syntax: for item in list { ... }
+type RangeLoopStatement struct {
+	Token    token.Token // The 'for' token
+	Iterator *Identifier
+	Iterable Expression
+	Body     *BlockStatement
+}
+
+func (rl *RangeLoopStatement) statementNode()       {}
+func (rl *RangeLoopStatement) TokenLiteral() string { return rl.Token.Literal }
+func (rl *RangeLoopStatement) String() string {
+	return "for " + rl.Iterator.String() + " in " + rl.Iterable.String() + " " + rl.Body.String()
+}
+
 // TryCatchStatement represents error handling blocks.
-// Syntax: try <BLOCK> catch <BLOCK> finally <BLOCK>
 type TryCatchStatement struct {
 	Token        token.Token // The 'try' token
 	TryBlock     *BlockStatement
@@ -229,23 +217,31 @@ func (tc *TryCatchStatement) String() string {
 	return out.String()
 }
 
+// IncludeStatement represents importing another file.
+type IncludeStatement struct {
+	Token token.Token // The 'include' token
+	Path  Expression
+}
+
+func (is *IncludeStatement) statementNode()       {}
+func (is *IncludeStatement) TokenLiteral() string { return is.Token.Literal }
+func (is *IncludeStatement) String() string {
+	return "include " + is.Path.String()
+}
+
 // ----------------------------------------------------------------------------------------------
 // EXPRESSIONS
 // ----------------------------------------------------------------------------------------------
 
-// Identifier represents a variable usage.
-// Example: x
 type Identifier struct {
-	Token token.Token // The 'IDENT' token
-	Value string      // The name of the identifier
+	Token token.Token
+	Value string
 }
 
 func (i *Identifier) expressionNode()      {}
 func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
 func (i *Identifier) String() string       { return i.Value }
 
-// IntegerLiteral represents a whole number.
-// Example: 42
 type IntegerLiteral struct {
 	Token token.Token
 	Value int64
@@ -255,8 +251,6 @@ func (il *IntegerLiteral) expressionNode()      {}
 func (il *IntegerLiteral) TokenLiteral() string { return il.Token.Literal }
 func (il *IntegerLiteral) String() string       { return il.Token.Literal }
 
-// FloatLiteral represents a decimal number.
-// Example: 3.14
 type FloatLiteral struct {
 	Token token.Token
 	Value float64
@@ -266,8 +260,6 @@ func (fl *FloatLiteral) expressionNode()      {}
 func (fl *FloatLiteral) TokenLiteral() string { return fl.Token.Literal }
 func (fl *FloatLiteral) String() string       { return fl.Token.Literal }
 
-// StringLiteral represents a text string.
-// Example: "Hello"
 type StringLiteral struct {
 	Token token.Token
 	Value string
@@ -277,8 +269,6 @@ func (sl *StringLiteral) expressionNode()      {}
 func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
 func (sl *StringLiteral) String() string       { return `"` + sl.Value + `"` }
 
-// CharLiteral represents a single character.
-// Example: 'a'
 type CharLiteral struct {
 	Token token.Token
 	Value rune
@@ -288,7 +278,6 @@ func (cl *CharLiteral) expressionNode()      {}
 func (cl *CharLiteral) TokenLiteral() string { return cl.Token.Literal }
 func (cl *CharLiteral) String() string       { return "'" + string(cl.Value) + "'" }
 
-// BooleanLiteral represents true or false.
 type BooleanLiteral struct {
 	Token token.Token
 	Value bool
@@ -298,7 +287,6 @@ func (bl *BooleanLiteral) expressionNode()      {}
 func (bl *BooleanLiteral) TokenLiteral() string { return bl.Token.Literal }
 func (bl *BooleanLiteral) String() string       { return bl.Token.Literal }
 
-// NilLiteral represents 'none' (null/nil).
 type NilLiteral struct {
 	Token token.Token
 }
@@ -307,10 +295,8 @@ func (nl *NilLiteral) expressionNode()      {}
 func (nl *NilLiteral) TokenLiteral() string { return nl.Token.Literal }
 func (nl *NilLiteral) String() string       { return "none" }
 
-// PrefixExpression represents an operator before an operand.
-// Example: -5, !true
 type PrefixExpression struct {
-	Token    token.Token // The prefix token (e.g., !, -)
+	Token    token.Token
 	Operator string
 	Right    Expression
 }
@@ -321,10 +307,8 @@ func (pe *PrefixExpression) String() string {
 	return "(" + pe.Operator + " " + pe.Right.String() + ")"
 }
 
-// InfixExpression represents a binary operation.
-// Example: 5 adds 10, x equals y
 type InfixExpression struct {
-	Token    token.Token // The operator token
+	Token    token.Token
 	Left     Expression
 	Operator string
 	Right    Expression
@@ -336,8 +320,6 @@ func (ie *InfixExpression) String() string {
 	return "(" + ie.Left.String() + " " + ie.Operator + " " + ie.Right.String() + ")"
 }
 
-// PointerReferenceExpression gets the address of a variable.
-// Syntax: pointing to <IDENTIFIER>
 type PointerReferenceExpression struct {
 	Token token.Token
 	Value Expression
@@ -349,8 +331,6 @@ func (pr *PointerReferenceExpression) String() string {
 	return "(pointing to " + pr.Value.String() + ")"
 }
 
-// PointerDereferenceExpression gets the value at an address.
-// Syntax: pointing from <IDENTIFIER>
 type PointerDereferenceExpression struct {
 	Token token.Token
 	Value Expression
@@ -362,8 +342,6 @@ func (pd *PointerDereferenceExpression) String() string {
 	return "(pointing from " + pd.Value.String() + ")"
 }
 
-// IfExpression represents a conditional logic branch that returns a value.
-// Syntax: if <COND> <BLOCK> else <BLOCK>
 type IfExpression struct {
 	Token       token.Token
 	Condition   Expression
@@ -382,10 +360,8 @@ func (ie *IfExpression) String() string {
 	return out.String()
 }
 
-// FunctionLiteral represents an anonymous function definition.
-// Syntax: takes (params) <BLOCK>
 type FunctionLiteral struct {
-	Token      token.Token // The 'takes' token
+	Token      token.Token
 	Parameters []*Identifier
 	Body       *BlockStatement
 }
@@ -405,11 +381,9 @@ func (fl *FunctionLiteral) String() string {
 	return out.String()
 }
 
-// CallExpression represents executing a function.
-// Syntax: myFunc(1, 2)
 type CallExpression struct {
-	Token     token.Token // The '(' token
-	Function  Expression  // The identifier or function literal being called
+	Token     token.Token
+	Function  Expression
 	Arguments []Expression
 }
 
@@ -428,10 +402,8 @@ func (ce *CallExpression) String() string {
 	return out.String()
 }
 
-// ArrayLiteral represents a list of values.
-// Syntax: [1, 2, 3]
 type ArrayLiteral struct {
-	Token    token.Token // The '[' token
+	Token    token.Token
 	Elements []Expression
 }
 
@@ -450,12 +422,10 @@ func (al *ArrayLiteral) String() string {
 	return out.String()
 }
 
-// IndexExpression represents accessing an array or map.
-// Syntax: arr[1]
 type IndexExpression struct {
-	Token token.Token // The '[' token
-	Left  Expression  // The object being indexed
-	Index Expression  // The key or index
+	Token token.Token
+	Left  Expression
+	Index Expression
 }
 
 func (ie *IndexExpression) expressionNode()      {}
@@ -464,30 +434,25 @@ func (ie *IndexExpression) String() string {
 	return "(" + ie.Left.String() + "[" + ie.Index.String() + "])"
 }
 
-// MapLiteral represents a hash map.
-// Syntax: { key: value, ... }
 type MapLiteral struct {
-	Token token.Token // The '{' token
+	Token token.Token
 	Pairs map[Expression]Expression
 }
 
 func (ml *MapLiteral) expressionNode()      {}
 func (ml *MapLiteral) TokenLiteral() string { return ml.Token.Literal }
 func (ml *MapLiteral) String() string {
-	return "{...}" // Simplified for string representation
+	return "{...}"
 }
 
-// StructField helps construct struct instances.
 type StructField struct {
 	Name  *Identifier
 	Value Expression
 }
 
-// StructInstantiationExpression creates an instance of a defined struct.
-// Syntax: User { name: "Amogh", age: 30 }
 type StructInstantiationExpression struct {
-	Token  token.Token // The first token of the identifier
-	Name   *Identifier // The name of the struct type
+	Token  token.Token
+	Name   *Identifier
 	Fields []StructField
 }
 
@@ -506,12 +471,10 @@ func (sie *StructInstantiationExpression) String() string {
 	return out.String()
 }
 
-// FieldAccessExpression represents accessing a property of a struct.
-// Syntax: user.name
 type FieldAccessExpression struct {
-	Token  token.Token // The '.' token
-	Object Expression  // The struct instance
-	Field  *Identifier // The property name
+	Token  token.Token
+	Object Expression
+	Field  *Identifier
 }
 
 func (fae *FieldAccessExpression) expressionNode()      {}

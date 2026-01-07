@@ -45,6 +45,9 @@ const (
 	// User-Defined Types
 	STRUCT_DEF_OBJ  = "STRUCT_DEFINITION" // The blueprint (class)
 	STRUCT_INST_OBJ = "STRUCT_INSTANCE"   // The concrete object (instance)
+
+	// Builtin Functions
+	BUILTIN_OBJ = "BUILTIN" // Builtin functions
 )
 
 // Object is the base interface that every value in Eloquence must implement.
@@ -251,3 +254,14 @@ func (si *StructInstance) Inspect() string {
 	out.WriteString("}")
 	return out.String()
 }
+
+// ==============================================================================================
+// BUILTIN FUNCTIONS
+// ==============================================================================================
+
+type Builtin struct {
+	Fn func(args ...Object) Object
+}
+
+func (b *Builtin) Type() ObjectType { return BUILTIN_OBJ }
+func (b *Builtin) Inspect() string  { return "builtin function" }

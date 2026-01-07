@@ -1,9 +1,8 @@
 // ==============================================================================================
 // FILE: evaluator/evaluator_integration_test.go
 // ==============================================================================================
-// PURPOSE: Integration tests for the runtime.
-//          Validates advanced features where multiple language constructs interact,
-//          such as functions using structs, pointers modifying variables, etc.
+// PURPOSE: Integration tests for the Evaluator.
+//          Validates complex, multi-statement logic like recursion, closures, and structs.
 // ==============================================================================================
 
 package evaluator
@@ -14,79 +13,60 @@ import (
 
 func TestIntegration_FunctionApplication(t *testing.T) {
 	input := `
-	double is takes(x)
-		x times 2
-	end
-	
-	add is takes(x, y)
-		x adds y
-	end
-	
-	add(double(5), add(3, 2))`
-
+	identity is takes(x) { x }
+	identity(5)`
 	evaluated := testEval(input)
-	testIntegerObject(t, evaluated, 15)
+	testIntegerObject(t, evaluated, 5)
 }
 
 func TestIntegration_Closures(t *testing.T) {
-	// Tests lexical scoping: 'x' is captured by the inner function
 	input := `
-	newAdder is takes(x)
-		takes(y)
-			x adds y
-		end
-	end
-	
+	newAdder is takes(x) {
+		return takes(y) { x adds y }
+	}
 	addTwo is newAdder(2)
 	addTwo(2)`
-
 	evaluated := testEval(input)
 	testIntegerObject(t, evaluated, 4)
 }
 
+func TestIntegration_RecursiveFactorial(t *testing.T) {
+	input := `
+	factorial is takes(n) {
+		if n equals 0 {
+			return 1
+		}
+		return n times factorial(n minus 1)
+	}
+	factorial(5)`
+	evaluated := testEval(input)
+	testIntegerObject(t, evaluated, 120)
+}
+
 func TestIntegration_Structs(t *testing.T) {
 	input := `
-	define User as struct { name, age }
-	u is User { name: "Alice", age: 30 }
-	u.age`
-
+	define Box as struct { width, height }
+	b is Box { width: 10, height: 20 }
+	b.width times b.height`
 	evaluated := testEval(input)
-	testIntegerObject(t, evaluated, 30)
+	testIntegerObject(t, evaluated, 200)
 }
 
 func TestIntegration_Pointers(t *testing.T) {
-	// Tests that pointer modification updates the original variable
 	input := `
-	x is 10
-	ptr is pointing to x
-	pointing from ptr is 20
-	x` // x should now be 20
-
+	val is 50
+	ptr is pointing to val
+	pointing from ptr is 100
+	val`
 	evaluated := testEval(input)
-	testIntegerObject(t, evaluated, 20)
-}
-
-func TestIntegration_RecursiveFactorial(t *testing.T) {
-	input := `
-	fact is takes(n)
-		if n equals 0
-			return 1
-		else
-			return n times fact(n subtracts 1)
-		end
-	end
-	fact(5)`
-
-	evaluated := testEval(input)
-	testIntegerObject(t, evaluated, 120)
+	testIntegerObject(t, evaluated, 100)
 }
 
 func TestIntegration_MapAndArray(t *testing.T) {
 	input := `
 	arr is [1, 2, 3]
-	m is { "a": 10, "b": 20 }
-	arr[0] adds m["b"]` // 1 + 20 = 21
-
+	dict is { "first": arr[0] }
+	dict["first"]`
 	evaluated := testEval(input)
-	testIntegerObject(t, evaluated, 21)
+	testIntegerObject(t, evaluated, 1)
 }

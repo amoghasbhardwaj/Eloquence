@@ -25,6 +25,12 @@ func TestIntegrationKeywordCategories(t *testing.T) {
 			{"or", OR},
 			{"not", NOT},
 		},
+		"Control Flow": {
+			{"if", IF},
+			{"else", ELSE},
+			{"while", WHILE},
+			{"in", IN}, // Range loop support
+		},
 		"Pointers": {
 			{"pointing to", POINTING_TO},
 			{"pointing from", POINTING_FROM},
@@ -33,6 +39,9 @@ func TestIntegrationKeywordCategories(t *testing.T) {
 			{"define", DEFINE},
 			{"as", AS},
 			{"struct", STRUCT},
+		},
+		"Modules": {
+			{"include", INCLUDE},
 		},
 	}
 

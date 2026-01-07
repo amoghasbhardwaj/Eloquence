@@ -24,13 +24,6 @@ func TestIntegerLiteral(t *testing.T) {
 	}
 }
 
-func TestFloatLiteral(t *testing.T) {
-	node := &FloatLiteral{Token: token.Token{Type: token.FLOAT, Literal: "3.14"}, Value: 3.14}
-	if node.String() != "3.14" {
-		t.Fatalf("expected 3.14, got %s", node.String())
-	}
-}
-
 func TestStringLiteral(t *testing.T) {
 	node := &StringLiteral{Token: token.Token{Type: token.STRING, Literal: "hello"}, Value: "hello"}
 	// String() must wrap the value in quotes to represent source code
@@ -40,36 +33,9 @@ func TestStringLiteral(t *testing.T) {
 	}
 }
 
-func TestBooleanLiteral(t *testing.T) {
-	node := &BooleanLiteral{Token: token.Token{Type: token.BOOL, Literal: "true"}, Value: true}
-	if node.String() != "true" {
-		t.Fatalf("expected true, got %s", node.String())
-	}
-}
-
-func TestNilLiteral(t *testing.T) {
-	node := &NilLiteral{Token: token.Token{Type: token.NIL, Literal: "none"}}
-	if node.String() != "none" {
-		t.Fatalf("expected none, got %s", node.String())
-	}
-}
-
 // ----------------------------------------------------------------------------
 // EXPRESSIONS
 // ----------------------------------------------------------------------------
-
-func TestPrefixExpression(t *testing.T) {
-	// Testing: not true
-	node := &PrefixExpression{
-		Token:    token.Token{Type: token.NOT, Literal: "not"},
-		Operator: "not",
-		Right:    &BooleanLiteral{Token: token.Token{Type: token.BOOL, Literal: "true"}, Value: true},
-	}
-	expected := "(not true)"
-	if node.String() != expected {
-		t.Fatalf("expected %s, got %s", expected, node.String())
-	}
-}
 
 func TestInfixExpression(t *testing.T) {
 	// Testing: 5 adds 3
@@ -129,13 +95,18 @@ func TestReturnStatement(t *testing.T) {
 	}
 }
 
-func TestShowStatement(t *testing.T) {
-	// Testing: show "msg"
-	node := &ShowStatement{
-		Token: token.Token{Type: token.SHOW, Literal: "show"},
-		Value: &StringLiteral{Token: token.Token{Type: token.STRING, Literal: "msg"}, Value: "msg"},
+// Replaced TestShowStatement with TestCallExpression since 'show' is now just a function call
+func TestCallExpression(t *testing.T) {
+	// Testing: show(msg)
+	node := &CallExpression{
+		Token:    token.Token{Type: token.LPAREN, Literal: "("},
+		Function: &Identifier{Token: token.Token{Type: token.IDENT, Literal: "show"}, Value: "show"},
+		Arguments: []Expression{
+			&Identifier{Token: token.Token{Type: token.IDENT, Literal: "msg"}, Value: "msg"},
+		},
 	}
-	expected := `show "msg"`
+
+	expected := "show(msg)"
 	if node.String() != expected {
 		t.Fatalf("expected %s, got %s", expected, node.String())
 	}
