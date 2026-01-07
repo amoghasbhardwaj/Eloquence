@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eloquence Playground</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Go WASM Support Script -->
+    <script src="wasm_exec.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <header>
+        <h1>Eloquence <span style="font-size: 0.8rem; color: #888;">v0.1 WASM</span></h1>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span id="status" style="font-size: 0.8rem; color: orange;">Loading Engine...</span>
+            <button onclick="run()">▶ RUN CODE</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar with Examples -->
+        <div class="sidebar">
+            <div style="padding-bottom: 10px; font-weight: bold; color: #fff;">Examples</div>
+            <div id="example-list"></div>
+        </div>
+
+        <!-- Main Editor Area -->
+        <div class="main-area">
+            <div class="editor-container">
+                <textarea id="code" spellcheck="false"></textarea>
+            </div>
+            <div class="output-container" id="output">
+                <div style="color: #666;">// Output will appear here...</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

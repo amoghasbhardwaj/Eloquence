@@ -1,0 +1,111 @@
+/* wasm/style.css */
+:root {
+    --bg-color: #1e1e1e;
+    --sidebar-color: #252526;
+    --editor-bg: #1e1e1e;
+    --text-color: #d4d4d4;
+    --accent: #007acc;
+    --success: #4ec9b0;
+    --keyword: #569cd6;
+    --string: #ce9178;
+    --border: #333;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    background-color: #333;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+}
+
+h1 { margin: 0; font-size: 1.2rem; color: var(--success); }
+
+.container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: var(--sidebar-color);
+    border-right: 1px solid var(--border);
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-container {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--border);
+}
+
+.output-container {
+    flex: 1;
+    background-color: #111;
+    padding: 10px;
+    overflow-y: auto;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+textarea {
+    flex: 1;
+    background-color: var(--editor-bg);
+    color: var(--text-color);
+    border: none;
+    padding: 15px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    line-height: 1.5;
+}
+
+button {
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+button:hover { background-color: #0062a3; }
+
+.example-btn {
+    display: block;
+    width: 100%;
+    background: transparent;
+    text-align: left;
+    padding: 8px;
+    color: #aaa;
+    border-bottom: 1px solid #333;
+    margin-bottom: 2px;
+}
+
+.example-btn:hover { color: white; background: #333; }
+
+.log-line { color: #cccccc; }
+.result-line { color: var(--success); font-weight: bold; margin-top: 5px; }
+.error-line { color: #f48771; }
