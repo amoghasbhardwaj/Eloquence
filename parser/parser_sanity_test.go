@@ -2,8 +2,6 @@
 // FILE: parser/parser_sanity_test.go
 // ==============================================================================================
 // PURPOSE: Sanity checks for the Parser.
-//          Ensures the parser handles empty files, comments, and invalid syntax
-//          gracefully (by reporting errors) rather than crashing.
 // ==============================================================================================
 
 package parser
@@ -24,7 +22,7 @@ func TestSanity_EmptyInput(t *testing.T) {
 		t.Errorf("parser reported errors on empty input: %v", p.Errors())
 	}
 	if len(program.Statements) != 0 {
-		t.Errorf("expected 0 statements for empty input, got %d", len(program.Statements))
+		t.Errorf("expected 0 statements for empty input")
 	}
 }
 
@@ -32,6 +30,7 @@ func TestSanity_CommentsOnly(t *testing.T) {
 	input := `
     /* This is a comment */
     /* Another one */
+    // Single line
     `
 	l := lexer.New(input)
 	p := New(l)
@@ -41,7 +40,7 @@ func TestSanity_CommentsOnly(t *testing.T) {
 		t.Errorf("parser errors on comments: %v", p.Errors())
 	}
 	if len(program.Statements) != 0 {
-		t.Errorf("expected 0 statements for comments, got %d", len(program.Statements))
+		t.Errorf("expected 0 statements for comments")
 	}
 }
 
@@ -53,14 +52,14 @@ func TestSanity_GracefulErrorHandling(t *testing.T) {
 	_ = p.ParseProgram()
 
 	if len(p.Errors()) == 0 {
-		t.Errorf("expected parser errors for incomplete assignment, got none")
+		t.Errorf("expected parser errors for incomplete assignment")
 	}
 }
 
 func TestSanity_UnterminatedBlock(t *testing.T) {
-	// Missing 'end'
-	input := `if x less 5
-        show x`
+	// Missing '}' - Expects parser error now
+	input := `if x less 5 {
+        show(x)`
 
 	l := lexer.New(input)
 	p := New(l)
@@ -68,5 +67,18 @@ func TestSanity_UnterminatedBlock(t *testing.T) {
 
 	if len(p.Errors()) == 0 {
 		t.Errorf("expected parser errors for unterminated block, got none")
+	} else {
+		// Optional: verify error message content
+		expectedMsg := "unterminated block: expected '}', got EOF"
+		found := false
+		for _, err := range p.Errors() {
+			if err == expectedMsg {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected error %q, got %v", expectedMsg, p.Errors())
+		}
 	}
 }

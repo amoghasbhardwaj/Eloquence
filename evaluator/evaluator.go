@@ -11,10 +11,15 @@ package evaluator
 
 import (
 	"fmt"
+	"os"
 
 	"eloquence/ast"
 	"eloquence/object"
 )
+
+// ParserFunc is a hook to allow the evaluator to call the parser
+// without causing a circular import dependency.
+var ParserFunc func(string) *ast.Program
 
 // Singletons for performance (avoid allocating new true/false/null objects constantly)
 var (
@@ -58,16 +63,6 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return val
 		}
 		return &object.ReturnValue{Value: val}
-
-	case *ast.ShowStatement:
-		val := Eval(node.Value, env)
-		if isError(val) {
-			return val
-		}
-		if val != NULL {
-			fmt.Println(val.Inspect())
-		}
-		return NULL
 
 	case *ast.StructDefinitionStatement:
 		return evalStructDefinition(node, env)
@@ -163,8 +158,14 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.StringLiteral:
 		return &object.String{Value: node.Value}
-	}
+	// Range Loop
+	case *ast.RangeLoopStatement:
+		return evalRangeLoop(node, env)
 
+	// Include File
+	case *ast.IncludeStatement:
+		return evalInclude(node, env)
+	}
 	return NULL
 }
 
@@ -202,9 +203,7 @@ func evalBlockStatement(b *ast.BlockStatement, env *object.Environment) object.O
 }
 
 func evalLoopStatement(node *ast.LoopStatement, env *object.Environment) object.Object {
-	// CRITICAL FIX: Loops share the parent environment scope.
-	// This allows the loop body to modify variables (like counters) defined outside.
-
+	// Loops share the parent environment scope to allow modifying counters.
 	for {
 		cond := Eval(node.Condition, env)
 		if isError(cond) {
@@ -278,7 +277,7 @@ func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Obje
 
 func evalPrefixExpression(op string, right object.Object) object.Object {
 	switch op {
-	case "!":
+	case "!", "not": // FIXED: Added "not"
 		return nativeBool(!isTruthy(right))
 	case "-", "minus":
 		return evalMinusPrefix(right)
@@ -321,22 +320,24 @@ func evalInfixExpression(op string, left, right object.Object) object.Object {
 }
 
 func applyFunction(fn object.Object, args []object.Object) object.Object {
-	f, ok := fn.(*object.Function)
-	if !ok {
+	switch fn := fn.(type) {
+	case *object.Function:
+		env := object.NewEnclosedEnvironment(fn.Env)
+		for i, param := range fn.Parameters {
+			if i < len(args) {
+				env.Set(param.Value, args[i])
+			}
+		}
+		evaluated := Eval(fn.Body, env)
+		if rv, ok := evaluated.(*object.ReturnValue); ok {
+			return rv.Value
+		}
+		return evaluated
+	case *object.Builtin:
+		return fn.Fn(args...)
+	default:
 		return newError("not a function: %s", fn.Type())
 	}
-	// Create a new scope for the function execution, extending the closure's captured env
-	env := object.NewEnclosedEnvironment(f.Env)
-	for i, param := range f.Parameters {
-		if i < len(args) {
-			env.Set(param.Value, args[i])
-		}
-	}
-	evaluated := Eval(f.Body, env)
-	if rv, ok := evaluated.(*object.ReturnValue); ok {
-		return rv.Value
-	}
-	return evaluated
 }
 
 func evalPointerReference(node *ast.PointerReferenceExpression, env *object.Environment) object.Object {
@@ -433,8 +434,13 @@ func evalFieldAccess(node *ast.FieldAccessExpression, env *object.Environment) o
 }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
+	// 1. Check variables
 	if val, ok := env.Get(node.Value); ok {
 		return val
+	}
+	// 2. Check builtins
+	if builtin, ok := object.GetBuiltin(node.Value); ok {
+		return builtin
 	}
 	return newError("identifier not found: %s", node.Value)
 }
@@ -620,4 +626,51 @@ func isError(obj object.Object) bool {
 		return obj.Type() == object.ERROR_OBJ
 	}
 	return false
+}
+
+func evalRangeLoop(node *ast.RangeLoopStatement, env *object.Environment) object.Object {
+	iterable := Eval(node.Iterable, env)
+	if isError(iterable) {
+		return iterable
+	}
+
+	// We currently support looping over Arrays
+	arr, ok := iterable.(*object.Array)
+	if !ok {
+		return newError("object is not iterable: %s", iterable.Type())
+	}
+
+	for _, element := range arr.Elements {
+		// Create a temporary scope for the loop body
+		loopEnv := object.NewEnclosedEnvironment(env)
+		// Set the iterator variable (e.g., 'item' in 'for item in list')
+		loopEnv.Set(node.Iterator.Value, element)
+
+		rt := Eval(node.Body, loopEnv)
+
+		// Handle interrupts (Return or Error inside loop)
+		if rt != nil && (rt.Type() == object.RETURN_VALUE_OBJ || rt.Type() == object.ERROR_OBJ) {
+			return rt
+		}
+	}
+	return NULL
+}
+
+func evalInclude(node *ast.IncludeStatement, env *object.Environment) object.Object {
+	filename := node.Path.(*ast.StringLiteral).Value
+
+	// 1. Read the file
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return newError("failed to include file: %s", err)
+	}
+
+	// 2. Parse the file
+	if ParserFunc == nil {
+		return newError("parser not configured for imports")
+	}
+	program := ParserFunc(string(data))
+
+	// 3. Evaluate it in the CURRENT environment (so imported vars are available)
+	return Eval(program, env)
 }

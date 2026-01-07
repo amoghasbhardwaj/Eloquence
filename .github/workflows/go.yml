@@ -7,8 +7,8 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
-    name: Build and Test
+  test-and-build:
+    name: Core Test & Build
     runs-on: ubuntu-latest
     
     steps:
@@ -18,20 +18,53 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23' # Matches go.mod
+        go-version: '1.23' 
         cache: true
 
     - name: Download Dependencies
       run: go mod download
 
-    - name: Verify Dependencies
+    - name: Verify Module
       run: go mod verify
 
-    - name: Build
-      run: go build -v ./...
+    # 1. Run Standard Tests (Token, Lexer, Parser, AST, Evaluator, System Tests)
+    - name: Run Unit & System Tests
+      run: go test -v -race ./...
 
-    - name: Test
-      run: go test -v ./...
+    # 2. Run Benchmarks (Ensure no performance regressions)
+    - name: Run Benchmarks
+      run: go test -bench=. -run=^$ ./...
 
-    - name: Benchmark
-      run: go test -bench=. ./...
+    # 3. Build CLI Version (Standard OS)
+    - name: Build CLI Binary
+      run: go build -v -o eloquence main.go
+
+  wasm-build:
+    name: WASM Verification
+    runs-on: ubuntu-latest
+    needs: test-and-build # Only run if core tests pass
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        cache: true
+
+    # 4. Explicitly Build WASM (Checks for syscall/js errors)
+    - name: Build WebAssembly Binary
+      env:
+        GOOS: js
+        GOARCH: wasm
+      run: go build -o main.wasm wasm/wasm_main.go
+
+    # Optional: Upload the WASM file as an artifact to download/test later
+    - name: Upload WASM Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: eloquence-wasm
+        path: main.wasm
+        retention-days: 1

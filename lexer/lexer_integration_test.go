@@ -1,6 +1,11 @@
-// ----------------------------------------------------------------------------
+// ==============================================================================================
 // FILE: lexer/lexer_integration_test.go
-// ----------------------------------------------------------------------------
+// ==============================================================================================
+// PURPOSE: Tests the lexer's ability to tokenize complex inputs simulating struct instantiation.
+//          This verifies the interaction between identifiers, special syntax characters
+//          (brace, colon), and literals.
+// ==============================================================================================
+
 package lexer
 
 import (
@@ -9,11 +14,10 @@ import (
 	"eloquence/token"
 )
 
-// TestIntegrationLexer tests the lexer's ability to tokenize a complex input
-// simulating a struct instantiation. This verifies the interaction between
-// identifiers, special syntax characters (brace, colon), and literals.
 func TestIntegrationLexer(t *testing.T) {
+	// Simulating: node is Node { value: 10 }
 	input := `node is Node { value: 10 }`
+
 	expected := []struct {
 		typ     token.TokenType
 		literal string
@@ -28,7 +32,9 @@ func TestIntegrationLexer(t *testing.T) {
 		{token.RBRACE, "}"},
 		{token.EOF, ""},
 	}
+
 	l := New(input)
+
 	for i, e := range expected {
 		tok := l.NextToken()
 		if tok.Type != e.typ || tok.Literal != e.literal {

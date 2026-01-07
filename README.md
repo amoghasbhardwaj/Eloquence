@@ -1,13 +1,13 @@
 # 🖋️ Eloquence Programming Language
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg?style=flat-square)
-![Version](https://img.shields.io/badge/version-0.1.0-blue.svg?style=flat-square)
+![Go Version](https://img.shields.io/badge/go-1.20+-blue.svg?style=flat-square)
 ![Architecture](https://img.shields.io/badge/architecture-Tree--Walking%20Interpreter-orange.svg?style=flat-square)
 ![Design](https://img.shields.io/badge/design-English--First-purple.svg?style=flat-square)
 
 > **"Code is for humans to read, and only incidentally for machines to execute."**
 
-**Eloquence** is a high-level, interpreted programming language engineered to eliminate "Symbolic Friction." It replaces the dense punctuation of C-style languages (`{`, `&&`, `!=`, `->`) with fluid, natural language phrasing (`begin`, `and`, `not equals`, `pointing to`).
+**Eloquence** is a high-level, interpreted programming language engineered to eliminate "Symbolic Friction." It replaces dense punctuation of C-style languages (`{`, `&&`, `!=`, `->`) with fluid, natural language phrasing (`begin`, `and`, `not equals`, `pointing to`).  
 
 Designed and Architected by **Amogh S Bharadwaj**.
 
@@ -15,293 +15,297 @@ Designed and Architected by **Amogh S Bharadwaj**.
 
 ## 📑 Table of Contents
 
-1.  [Philosophical Foundation](#-philosophical-foundation)
-2.  [The Problem & Solution](#-the-problem--solution)
-3.  [Visual Architecture](#-visual-architecture--pipeline)
-4.  [Technical Deep Dive: Pratt Parsing](#-technical-deep-dive-why-pratt-parsing)
-5.  [Project Structure & Module Guide](#-project-structure--module-responsibility)
-6.  [Comprehensive Syntax Guide](#-comprehensive-syntax-guide)
-7.  [The Interactive REPL](#-the-interactive-repl)
-8.  [Testing Strategy](#-testing--verification-matrix)
-9.  [Installation & Usage](#-installation--usage)
+1. [Philosophical Foundation](#-philosophical-foundation)  
+2. [Problem & Solution](#-problem--solution)  
+3. [Visual Architecture & Pipeline](#-visual-architecture--pipeline)  
+4. [Technical Deep Dive: Pratt Parsing](#-technical-deep-dive-pratt-parsing)  
+5. [Project Structure & Module Guide](#-project-structure--module-responsibility)  
+6. [Runtime Data & Memory Flow](#-runtime-data--memory-flow)  
+7. [Comprehensive Syntax Guide](#-comprehensive-syntax-guide)  
+8. [Interactive REPL](#-interactive-repl)  
+9. [Testing Strategy](#-testing-strategy)  
+10. [WebAssembly & Browser Integration](#-webassembly--browser-integration)  
+11. [Installation & Usage](#-installation--usage)  
+12. [License & Contribution](#-license--contribution)
 
 ---
 
 ## 📖 Philosophical Foundation
 
 ### Etymology
-> **el·o·quence** (/ˈeləkwəns/)
-> *noun*
-> 1. Fluent or persuasive speaking or writing.
+
+> **el·o·quence** (/ˈeləkwəns/)  
+> *noun*  
+> 1. Fluent or persuasive speaking or writing.  
 > 2. The quality of delivering a clear, strong message.
 
-In software engineering, Eloquence represents the bridge between the **Logic of the Mind** and the **Logic of the Machine**. It asserts that a codebase should read with the cadence and clarity of a novel, ensuring that intent is never obscured by syntax.
+Eloquence bridges **Logic of the Mind** ↔ **Logic of the Machine**, ensuring code reads like a novel while preserving execution correctness.
 
 ---
 
-## ⚠️ The Problem & Solution
+## ⚠️ Problem & Solution
 
-### The Friction: Cognitive Load
-Modern programming suffers from **Symbolic Density**. When a developer reads `if (x != null && !y)`, their brain performs a two-step process:
-1.  **Decode**: Translate symbols (`!=`, `&&`, `!`) into concepts.
-2.  **Comprehend**: Understand the logic.
+### Cognitive Load in Traditional Languages
 
-### The Solution: Semantic Fluency
-Eloquence removes step #1. It shifts the focus from *decoding* to *reading*.
+    if (x != null && !y) { doSomething(); }
 
-#### Comparison
+requires decoding (`!=`, `&&`, `!`) before comprehension.
 
-    // Traditional (High Cognitive Load)
-    if (x != null && (a > b || c <= d)) {
-        return func(x);
-    }
+### Eloquence Semantic Fluency
 
-    // Eloquence (High Readability)
     if x not_equals none and (a greater b or c less_equal d)
         return func(x)
     end
 
-**Key Architectural Decisions:**
-*   **Linearity**: No semicolons. Line breaks signify the natural conclusion of a thought.
-*   **Explicit Scoping**: No curly braces. Blocks are delimited by keywords (`if` ... `end`).
-*   **Semantic Operators**: `is` replaces `=`, `adds` replaces `+`, `none` replaces `null`.
+**Design Principles:**
+
+* Linearity (no semicolons)  
+* Explicit scoping (`end`)  
+* Semantic operators (`is`, `adds`, `none`)  
 
 ---
 
 ## 🏗️ Visual Architecture & Pipeline
 
-Eloquence is engineered in **Go (Golang)**. The interpreter follows a linear, four-stage "Refinement Pipeline."
+### Full Compiler Flow
 
-    [ SOURCE CODE ]  "x is 10 adds 5"
-           |
-           v
-    +-------------+
-    |   LEXER     |  <-- The Scanner
-    +-------------+      Breaks raw text into atomic units (Tokens).
-           |             It handles multi-word operators like "pointing to".
-           v
-    +-------------+
-    |   PARSER    |  <-- The Architect (Pratt Approach)
-    +-------------+      Organizes tokens into an Abstract Syntax Tree (AST).
-           |             Enforces grammar and operator precedence.
-           v
-    +-------------+
-    |  EVALUATOR  |  <-- The Engine
-    +-------------+      Traverses the AST recursively.
-           |             Manages Scope, Environment, and Object Creation.
-           v
-       [ RESULT ]    (Integer Object: 15)
+graph TD
+    A[Source Code String] --> B[Lexer / Scanner]
+    B --> C[Parser / AST Builder]
+    C --> D[Evaluator / Interpreter]
+    D --> E[Environment / Memory Store]
+    D --> F[Output / show()]
+    D --> G[Built-in Functions]
+
+**Description:**
+
+* Lexer: Tokenizes semantic phrases (e.g., `pointing to`)  
+* Parser: Constructs AST using Pratt Parsing  
+* Evaluator: Tree-walking interpreter executing nodes  
+* Environment: Handles scope, closures, pointers, shadowing  
+* Output: Captured by `show()` or returned to JS in WASM  
 
 ---
 
-## 🧠 Technical Deep-Dive: Why Pratt Parsing?
+### Lexer → Token Flow
 
-Eloquence implements a **Top-Down Operator Precedence (Pratt) Parser**.
+graph LR
+    input["x is 10 adds 5"] --> lexer[Lexer]
+    lexer --> token1[IDENT:x]
+    lexer --> token2[IS:is]
+    lexer --> token3[INT:10]
+    lexer --> token4[ADDS:adds]
+    lexer --> token5[INT:5]
 
-### The Ambiguity Challenge
-In an English-first language, operators are words, not distinct symbols.
-Expression: `result is 5 adds 10 times 2`
-*   Naive Left-to-Right: `(5 + 10) * 2 = 30` (Incorrect)
-*   Mathematical Truth: `5 + (10 * 2) = 25` (Correct)
+* Lexer uses **lookahead** to detect multi-word tokens (`pointing to`, `greater_equal`).  
 
-### The Pratt Solution
-Every token in Eloquence is assigned a **Binding Power** (Precedence). The parser uses these values to decide which operands "stick" to which operator.
+---
 
-| Keyword | Binding Power | Role | Equivalent |
-| :--- | :--- | :--- | :--- |
-| `is` | 10 | Assignment | `=` |
-| `equals` | 30 | Comparison | `==` |
-| `adds` | 40 | Summation | `+` |
-| `times` | 50 | Product | `*` |
-| `pointing to` | 60 | Prefix | `&` |
+### Parser → AST Flow
 
-Because `times` (50) has a higher binding power than `adds` (40), the parser groups `10 times 2` together first, ensuring mathematical correctness without complex grammar files.
+graph TD
+    tokens[Tokens Array] --> parser[Parser]
+    parser --> ast1[AssignmentStatement]
+    ast1 --> name["Name: x"]
+    ast1 --> value[InfixExpression]
+    value --> left[5]
+    value --> operator[adds]
+    value --> right[10]
+
+* Uses **Pratt parsing** for precedence and correct grouping  
+* Handles **block vs struct ambiguity** with 3-token lookahead  
+
+---
+
+### Evaluator → Environment Flow
+
+graph TD
+    AST[AST Node] --> eval[Evaluator]
+    eval --> env[Environment]
+    env --> store[Variable Store / Scope]
+    eval --> ptr[Pointer Object]
+    ptr --> store
+    eval --> output[show() / return value]
+
+* **Closures** capture the environment at definition  
+* **Pointers** reference variables across scopes  
+
+---
+
+## 🧠 Technical Deep Dive: Pratt Parsing
+
+Expression:  
+
+    result is 5 adds 10 times 2
+
+Correct evaluation uses **binding power**:
+
+| Keyword         | Binding Power | Role          | Equivalent |
+|-----------------|---------------|---------------|------------|
+| `is`            | 10            | Assignment    | =          |
+| `equals`        | 30            | Comparison    | ==         |
+| `adds`          | 40            | Summation     | +          |
+| `times`         | 50            | Product       | *          |
+| `pointing to`   | 60            | Reference     | &          |
 
 ---
 
 ## 📂 Project Structure & Module Responsibility
 
-The codebase is modular, separating concerns into distinct packages for maintainability.
+eloquence/
 
-### 💎 `token/` (The Vocabulary)
-Defines the language's dictionary. It maps string literals to byte constants.
-*   **token.go**: Defines `TokenType` (e.g., `IDENT`, `INT`) and the `LookupIdent` function, which performs O(1) checks to see if a word is a variable or a keyword.
+    ast/        # AST Node definitions
+    evaluator/  # Runtime evaluation
+    lexer/      # Lexical analysis
+    object/     # Data types & environment
+    parser/     # Pratt parser & precedence
+    repl/       # Interactive shell
+    token/      # Token constants & keywords
+    wasm/       # WebAssembly runtime
+    tests/      # System tests
+    main.go     # CLI entry point
+    main.wasm   # WebAssembly binary
 
-### 🔍 `lexer/` (The Scanner)
-Performs lexical analysis.
-*   **lexer.go**: Contains the state machine. It reads characters, skips whitespace/comments, and groups characters into Tokens. It includes specific look-ahead logic to detect compound keywords like `pointing to`.
+---
 
-### 🌳 `ast/` (The Blueprint)
-Defines the hierarchical structure of the code.
-*   **ast.go**: Defines the `Node`, `Statement`, and `Expression` interfaces. It includes struct definitions for every language construct (e.g., `IfExpression`, `FunctionLiteral`, `StructDefinition`).
+## 🗃️ Runtime Data & Memory Flow
 
-### ⚙️ `parser/` (The Grammar)
-The core logic engine for syntax analysis.
-*   **parser.go**: Implements the Pratt Parser. It registers "Prefix" and "Infix" parsing functions for every token type and recursively builds the AST.
+### Object System Overview
 
-### 📦 `object/` (The Runtime)
-Defines the memory model and type system.
-*   **object.go**: Defines the `Object` interface. Every value (Integer, Boolean, Struct) implements `Type()` and `Inspect()`.
-*   **environment.go**: Implements the **Symbol Table**. It handles variable storage, lexical scoping (nested environments), and variable shadowing.
+graph TD
+    Integer --> Object[Object Interface]
+    Boolean --> Object
+    String --> Object
+    Array --> Object
+    Map --> Object
+    StructInstance --> Object
+    Function --> Object
+    Pointer --> Object
 
-### 🚀 `evaluator/` (The Executioner)
-The runtime interpreter.
-*   **evaluator.go**: Contains the giant `switch` statement that dispatches logic based on AST node types. It performs arithmetic, executes loops, and manages control flow (return/error).
+* **Object Interface**: Type() and Inspect()  
+* **Environment**: Hash map with `outer` pointer for lexical scoping  
+* **Shadowing**: Local writes do not overwrite outer variables  
+* **Mutation**: Pointers allow cross-scope updates  
 
-### 🖥️ `repl/` (The Interface)
-The interactive shell.
-*   **repl.go**: Orchestrates the loop: Read Input -> Lex -> Parse -> Evaluate -> Print.
+---
+
+### Memory & Environment Flow
+
+graph TD
+    Global[Global Environment] --> Local1[Function Call Env]
+    Local1 --> Local2[Block Env]
+    Local2 --> Lookup[Variable Lookup]
+    Pointer --> Lookup
+    Eval --> Output[show() / return value]
 
 ---
 
 ## ⌨️ Comprehensive Syntax Guide
 
-### 1. Variables & Primitives
-Eloquence uses dynamic typing with semantic keywords.
+### [📘 Full SYNTAX.md](SYNTAX.md)
 
-    // Assignment
-    age is 25
-    pi is 3.14159
-    username is "Amogh"
-    
-    // Booleans
-    is_active is true
-    
-    // Nullability ('none' replaces 'nil')
-    data is none
+### Quick Cheat Sheet
 
-### 2. Mathematics & Logic
-    sum is 10 adds 5
-    diff is 10 subtracts 2
-    prod is 10 times (2 adds 3)
-    
-    if age greater 18 and username not_equals "Guest"
-        show "Welcome, " adds username
-    end
-
-### 3. Collections
-    // Arrays
-    scores is [95, 88, 100]
-    first is scores[0]
-    
-    // HashMaps (Key-Value)
-    config is {
-        "version": "1.0",
-        "debug": false
-    }
-
-### 4. Functions & Closures
-Functions are first-class citizens.
-
-    // Definition
-    add is takes(x, y)
-        return x adds y
-    end
-    
-    // Call
-    result is add(10, 20)
-
-### 5. Data Structures (Structs)
-Object-oriented data modeling.
-
-    define User as struct { name, email }
-    
-    // Instantiation
-    me is User { name: "Amogh", email: "dev@eloquence.io" }
-    
-    // Field Access
-    show me.name
-
-### 6. Memory Management (Pointers)
-Low-level control with high-level syntax.
-
-    target is 500
-    
-    // Create Reference
-    ref is pointing to target
-    
-    // Dereference and Mutation
-    pointing from ref is 1000
-    
-    show target // Output: 1000
+| Concept        | Syntax Example |
+|----------------|----------------|
+| Assignment     | `x is 10` |
+| Math           | `x adds 5 times 2` |
+| Logic          | `if x greater 10 ... end` |
+| Functions      | `f is takes(x) ... end` |
+| Structs        | `define User as struct { name }` |
+| Pointers       | `ptr is pointing to x` |
+| Output         | `show("Hello World")` |
+| Arrays         | `list is [1,2,3]` |
+| Maps           | `config is { "key": "value" }` |
 
 ---
 
 ## 💻 The Interactive REPL
 
-The **Read-Eval-Print Loop** allows instant experimentation. It includes a persistent environment and debugging tools.
+Start:
 
-### How to Run
     go run main.go
 
-### Meta-Commands
-The REPL supports special commands prefixed with `.`:
+**Meta-commands:**
 
-| Command | Function | Description |
-| :--- | :--- | :--- |
-| **.help** | Help Menu | Displays the list of available commands. |
-| **.clear** | Reset Memory | Wipes the current Environment (deletes all variables) without exiting. |
-| **.exit** | Quit | Terminates the session. |
-| **.debug** | Toggle Verbose | **Advanced**: Switches on/off the "Compiler Internals" view. |
-
-### Debug Mode Example
-When `.debug` is enabled, the REPL reveals the pipeline:
-
-    >> .debug
-    Debug mode ENABLED
-    
-    >> x is 10
-    
-    ┌── [ TOKENS ] ──────────────────────┐
-    │ IDENT           : x                │
-    │ IS              : is               │
-    │ INT             : 10               │
-    └────────────────────────────────────┘
-    ┌── [ AST TREE ] ────────────────────┐
-    x is 10
-    └────────────────────────────────────┘
-    10
+| Command   | Function | Description |
+|-----------|---------|-------------|
+| .help     | Help Menu | Lists commands |
+| .clear    | Reset Memory | Clears Environment |
+| .exit     | Quit | Exit REPL |
+| .debug    | Toggle Verbose | Shows pipeline details |
 
 ---
 
-## 🧪 Testing & Verification Matrix
+## 🧪 Testing Strategy
 
-Eloquence is verified by a rigorous 4-tier testing strategy.
+| Tier        | File                     | Purpose |
+|-------------|--------------------------|---------|
+| Unit        | `*_unit_test.go`         | Component-level correctness |
+| Integration | `*_integration_test.go`  | Module interactions |
+| Sanity      | `*_sanity_test.go`       | Edge case handling |
+| System      | `tests/system_test.go`   | Full pipeline / algorithm verification |
 
-| Tier | File | Objective |
-| :--- | :--- | :--- |
-| **Unit** | `*_unit_test.go` | **Granularity**: Validates individual components (e.g., ensuring `5 adds 5` evaluates to `10`). |
-| **Integration**| `*_integration_test.go` | **Interaction**: Ensures the Parser correctly builds ASTs for complex nested structures like closures. |
-| **Sanity** | `*_sanity_test.go` | **Resilience**: Ensures the compiler handles empty inputs, comments, and garbage without panicking. |
-| **System** | `tests/system_test.go` | **Completeness**: Verifies Turing Completeness by solving algorithms (Fibonacci, Linked Lists). |
+Run:
+
+    go test ./... -v
+    go test -bench=. ./...
+
+---
+
+## 🌐 WebAssembly & Browser Integration
+
+### WASM Runtime Flow
+
+graph TD
+    JS[Browser] --> runEloquence[JS Function]
+    runEloquence --> WASM[WebAssembly Binary]
+    WASM --> Evaluator
+    Evaluator --> Object/Env
+    Evaluator --> Output[logs]
+    JS --> Console[Display Logs]
+
+Build WASM:
+
+    GOOS=js GOARCH=wasm go build -o main.wasm wasm/wasm_main.go
+
+HTML Integration:
+
+    <script src="wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
+            go.run(result.instance);
+        });
+        const output = runEloquence('show("Hello World")');
+        console.log(output.logs);
+    </script>
 
 ---
 
 ## 🚀 Installation & Usage
 
-### Prerequisites
-*   Go 1.20 or higher.
+1. **Prerequisites:** Go 1.20+  
+2. **Clone & Build:**
 
-### 1. Installation
-Clone the repository:
+        git clone https://github.com/amogh/eloquence.git
+        cd eloquence
+        go build -o eloquence main.go
 
-    git clone https://github.com/amogh/eloquence.git
-    cd eloquence
-
-### 2. Running the Tests
-Verify the integrity of the compiler:
-
-    go test ./... -v
-
-### 3. Running a Script
-Create a file named `hello.eq`:
-
-    show "Hello, Eloquence!"
-
-Run it:
-
-    go run main.go hello.eq
+3. **REPL Mode:** `./eloquence`  
+4. **Run Script:** `./eloquence script.eq`
 
 ---
 
-*Eloquence: The art of fluent logic.*
+## 📜 License & Contribution
+
+* **License:** MIT ([LICENSE](LICENSE))  
+* **Contributing Guidelines:** [CONTRIBUTING.md](CONTRIBUTING.md)  
+* **Code of Conduct:** [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
+---
+
+<p align="center">
+<b>Eloquence</b><br>
+<i>The art of fluent logic.</i>
+</p>

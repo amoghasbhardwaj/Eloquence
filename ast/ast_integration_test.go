@@ -45,20 +45,30 @@ func TestFunctionAndCallIntegration(t *testing.T) {
 func TestProgramStringIntegration(t *testing.T) {
 	prog := &Program{
 		Statements: []Statement{
+			// 1. x is 10
 			&AssignmentStatement{
 				Token: token.Token{Type: token.IS, Literal: "is"},
 				Name:  &Identifier{Token: token.Token{Type: token.IDENT, Literal: "x"}, Value: "x"},
 				Value: &IntegerLiteral{Token: token.Token{Type: token.INT, Literal: "10"}, Value: 10},
 			},
-			&ShowStatement{
-				Token: token.Token{Type: token.SHOW, Literal: "show"},
-				Value: &Identifier{Token: token.Token{Type: token.IDENT, Literal: "x"}, Value: "x"},
+			// 2. show(x)
+			// This is now an ExpressionStatement containing a CallExpression
+			&ExpressionStatement{
+				Token: token.Token{Type: token.IDENT, Literal: "show"},
+				Expression: &CallExpression{
+					Token:    token.Token{Type: token.LPAREN, Literal: "("},
+					Function: &Identifier{Token: token.Token{Type: token.IDENT, Literal: "show"}, Value: "show"},
+					Arguments: []Expression{
+						&Identifier{Token: token.Token{Type: token.IDENT, Literal: "x"}, Value: "x"},
+					},
+				},
 			},
 		},
 	}
 
-	// Eloquence statements don't force newlines in .String(), they just concatenate.
-	expected := "x is 10show x"
+	// Eloquence statements in .String() concatenate directly
+	// Expected: x is 10show(x)
+	expected := "x is 10show(x)"
 	if prog.String() != expected {
 		t.Fatalf("expected %s, got %s", expected, prog.String())
 	}

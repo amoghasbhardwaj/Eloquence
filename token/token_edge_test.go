@@ -27,6 +27,7 @@ func TestLookupIdentEdgeCases(t *testing.T) {
 		// Eloquence is case-sensitive. "TRUE" is an identifier, "true" is a boolean literal.
 		{"TRUE", IDENT},
 		{"If", IDENT},
+		{"Include", IDENT},
 
 		// Edge Case 4: Multi-word keywords
 		// Ensure that if the lexer successfully groups "pointing from", it maps correctly.

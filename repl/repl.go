@@ -3,8 +3,7 @@
 // ==============================================================================================
 // PACKAGE: repl
 // PURPOSE: The Read-Eval-Print Loop interface.
-//          It connects the user input stream to the compiler pipeline (Lexer->Parser->Evaluator)
-//          and manages the persistent session state.
+//          It handles multiline input buffering and connects to the interpreter.
 // ==============================================================================================
 
 package repl
@@ -27,8 +26,9 @@ import (
 // ----------------------------------------------------------------------------
 
 const (
-	PROMPT = ">> "
-	LOGO   = `
+	PROMPT      = ">> "
+	CONT_PROMPT = "... " // Continuation prompt for multiline blocks
+	LOGO        = `
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃  _____ _                                           ┃
 ┃ | ____| | ___   __ _ _   _  ___ _ __   ___ ___     ┃
@@ -61,8 +61,6 @@ const (
 // ----------------------------------------------------------------------------
 
 // Start launches the Read-Eval-Print Loop.
-// It listens to 'in', evaluates code, and writes results to 'out'.
-// The 'env' persists across the session to allow variable storage.
 func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
 	env := object.NewEnvironment() // Persistent memory for the session
@@ -70,30 +68,35 @@ func Start(in io.Reader, out io.Writer) {
 
 	// Print Welcome Header
 	fmt.Fprint(out, LOGO)
-	printHelp(out)
+	fmt.Fprintln(out, "Type .help or .helper for syntax guide.")
+
+	// Buffer to store code across multiple lines (for loops/functions)
+	var codeBuffer strings.Builder
+	braceCount := 0
+
+	// Initial Prompt
+	fmt.Fprint(out, Cyan+PROMPT+Reset)
 
 	for {
-		fmt.Fprint(out, Cyan+PROMPT+Reset)
 		scanned := scanner.Scan()
 		if !scanned {
 			return
 		}
 
 		line := scanner.Text()
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
+		trimmedLine := strings.TrimSpace(line)
 
-		// --- COMMAND HANDLING ---
-		if strings.HasPrefix(line, ".") {
-			switch line {
+		// --- COMMAND HANDLING (Only if not inside a code block) ---
+		if braceCount == 0 && strings.HasPrefix(trimmedLine, ".") {
+			switch trimmedLine {
 			case ".exit":
 				fmt.Fprintln(out, Yellow+"Goodbye!"+Reset)
 				return
 			case ".clear":
 				env = object.NewEnvironment() // Reset environment
+				codeBuffer.Reset()
 				fmt.Fprintln(out, Green+"Environment cleared (memory reset)."+Reset)
+				fmt.Fprint(out, Cyan+PROMPT+Reset)
 				continue
 			case ".debug":
 				debugMode = !debugMode
@@ -102,41 +105,69 @@ func Start(in io.Reader, out io.Writer) {
 					status = "ENABLED"
 				}
 				fmt.Fprintf(out, Gray+"Debug mode %s\n"+Reset, status)
+				fmt.Fprint(out, Cyan+PROMPT+Reset)
 				continue
-			case ".help":
+			case ".help", ".helper":
 				printHelp(out)
+				fmt.Fprint(out, Cyan+PROMPT+Reset)
 				continue
 			default:
-				fmt.Fprintf(out, Red+"Unknown command: %s. Type .help for info.\n"+Reset, line)
+				fmt.Fprintf(out, Red+"Unknown command: %s. Type .help for info.\n"+Reset, trimmedLine)
+				fmt.Fprint(out, Cyan+PROMPT+Reset)
 				continue
 			}
 		}
 
-		// --- 1. LEXER DEBUG (Optional) ---
-		if debugMode {
-			printTokens(out, line)
+		// --- MULTILINE DETECTION ---
+		// We count open/close braces to know if the user is finished typing a block.
+		braceCount += strings.Count(line, "{")
+		braceCount -= strings.Count(line, "}")
+
+		// Append current line to buffer
+		codeBuffer.WriteString(line + "\n")
+
+		// If braces are unbalanced (e.g., "while x < 10 {"), wait for more input
+		if braceCount > 0 {
+			fmt.Fprint(out, Gray+CONT_PROMPT+Reset)
+			continue
 		}
 
-		// --- 2. PARSER ---
-		l := lexer.New(line)
+		// --- EXECUTION PHASE ---
+		// User is done typing (braces balanced), let's run the code.
+		fullCode := codeBuffer.String()
+		codeBuffer.Reset() // Clear buffer for next command
+		braceCount = 0     // Reset count safety
+
+		// 1. LEXER DEBUG (Optional)
+		if debugMode {
+			printTokens(out, fullCode)
+		}
+
+		// 2. PARSER
+		l := lexer.New(fullCode)
 		p := parser.New(l)
 		program := p.ParseProgram()
 
 		if len(p.Errors()) != 0 {
 			printParserErrors(out, p.Errors())
+			// Reset prompt and continue loop
+			fmt.Fprint(out, Cyan+PROMPT+Reset)
 			continue
 		}
 
-		// --- 3. AST DEBUG (Optional) ---
+		// 3. AST DEBUG (Optional)
 		if debugMode {
 			printAST(out, program)
 		}
 
-		// --- 4. EVALUATOR ---
+		// 4. EVALUATOR
 		evaluated := evaluator.Eval(program, env)
 		if evaluated != nil {
 			printEvalResult(out, evaluated)
 		}
+
+		// Ready for next input
+		fmt.Fprint(out, Cyan+PROMPT+Reset)
 	}
 }
 
@@ -145,12 +176,43 @@ func Start(in io.Reader, out io.Writer) {
 // ----------------------------------------------------------------------------
 
 func printHelp(out io.Writer) {
-	fmt.Fprintln(out, Gray+"Commands:")
-	fmt.Fprintln(out, "  .exit   Quit the REPL")
-	fmt.Fprintln(out, "  .clear  Reset memory")
-	fmt.Fprintln(out, "  .debug  Toggle verbose AST/Token output")
-	fmt.Fprintln(out, "  .help   Show this message"+Reset)
-	fmt.Fprintln(out)
+	fmt.Fprintln(out, "\n"+Bold+"══════════ ELOQUENCE SYNTAX GUIDE ══════════"+Reset)
+
+	fmt.Fprintln(out, Cyan+"\n[ REPL Commands ]"+Reset)
+	fmt.Fprintln(out, "  .exit           Quit the REPL")
+	fmt.Fprintln(out, "  .clear          Reset variables/memory")
+	fmt.Fprintln(out, "  .debug          Toggle detailed AST/Token view")
+
+	fmt.Fprintln(out, Cyan+"\n[ Variables & Math ]"+Reset)
+	fmt.Fprintln(out, "  Assignment      "+Green+"x is 10"+Reset)
+	fmt.Fprintln(out, "  Arithmetic      "+Green+"x adds 5, y subtracts 2, z times 3"+Reset)
+	fmt.Fprintln(out, "  Comparison      "+Green+"x equals 10, y greater 5"+Reset)
+
+	fmt.Fprintln(out, Cyan+"\n[ Control Flow ]"+Reset)
+	fmt.Fprintln(out, "  If/Else         "+Green+"if x < 10 { ... } else { ... }"+Reset)
+	fmt.Fprintln(out, "  While Loop      "+Green+"while x < 100 { x is x adds 1 }"+Reset)
+	fmt.Fprintln(out, "  Range Loop      "+Green+"for item in myList { show(item) }"+Reset)
+
+	fmt.Fprintln(out, Cyan+"\n[ Functions ]"+Reset)
+	fmt.Fprintln(out, "  Define          "+Green+"add is takes(a, b) { return a adds b }"+Reset)
+	fmt.Fprintln(out, "  Call            "+Green+"result is add(10, 20)"+Reset)
+
+	fmt.Fprintln(out, Cyan+"\n[ Data Structures ]"+Reset)
+	fmt.Fprintln(out, "  Arrays          "+Green+"list is [1, 2, 3]"+Reset)
+	fmt.Fprintln(out, "  Maps            "+Green+"dict is {\"name\": \"Amogh\", \"age\": 30}"+Reset)
+	fmt.Fprintln(out, "  Struct Def      "+Green+"define User as struct { name, age }"+Reset)
+	fmt.Fprintln(out, "  Struct Init     "+Green+"u is User { name: \"Amogh\", age: 30 }"+Reset)
+
+	fmt.Fprintln(out, Cyan+"\n[ Memory ]"+Reset)
+	fmt.Fprintln(out, "  Reference       "+Green+"ptr is pointing to x"+Reset)
+	fmt.Fprintln(out, "  Dereference     "+Green+"val is pointing from ptr"+Reset)
+
+	fmt.Fprintln(out, Cyan+"\n[ Built-in Functions ]"+Reset)
+	fmt.Fprintln(out, "  IO              "+Green+"show(x, y), ask(\"Name?\")"+Reset)
+	fmt.Fprintln(out, "  Utils           "+Green+"count(arr), append(arr, item), str(10)"+Reset)
+	fmt.Fprintln(out, "  Strings         "+Green+"upper(s), lower(s), split(s, \" \"), join(arr, \",\")"+Reset)
+
+	fmt.Fprintln(out, "\n"+Bold+"════════════════════════════════════════════"+Reset)
 }
 
 func printTokens(out io.Writer, line string) {
@@ -164,7 +226,6 @@ func printTokens(out io.Writer, line string) {
 
 func printAST(out io.Writer, program fmt.Stringer) {
 	fmt.Fprintln(out, Gray+"┌── [ AST TREE ] ────────────────────────────────────────┐"+Reset)
-	// We check for non-empty string to avoid printing blank lines
 	if str := program.String(); str != "" {
 		fmt.Fprintf(out, "%s\n", str)
 	}

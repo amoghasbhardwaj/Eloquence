@@ -5,35 +5,243 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eloquence Playground</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Go WASM Support Script -->
     <script src="wasm_exec.js"></script>
     <script src="script.js" defer></script>
 </head>
 <body>
+    
+    <!-- HEADER -->
     <header>
-        <h1>Eloquence <span style="font-size: 0.8rem; color: #888;">v0.1 WASM</span></h1>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span id="status" style="font-size: 0.8rem; color: orange;">Loading Engine...</span>
-            <button onclick="run()">▶ RUN CODE</button>
+        <!-- Left: Brand -->
+        <div class="brand">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            </div>
+            <div class="brand-text">
+                <h1>Eloquence</h1>
+                <span class="badge">v1.0</span>
+            </div>
+        </div>
+
+        <!-- Center: Creator Credit -->
+        <div class="creator-link">
+            <span>Created by</span>
+            <a href="https://amoghs.netlify.app/" target="_blank">Amogh S Bharadwaj</a>
+        </div>
+
+        <!-- Right: Actions -->
+        <div class="actions">
+            <button class="nav-btn" onclick="toggleModal('syntaxModal')">
+                <span>📘 Syntax</span>
+            </button>
+            
+            <a href="https://github.com/amoghasbhardwaj/Eloquence" target="_blank" class="github-btn">
+                <svg viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+                <span>Star</span>
+            </a>
+
+            <button class="run-btn" onclick="run()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                <span>Run</span>
+            </button>
         </div>
     </header>
 
+    <!-- MAIN WORKSPACE -->
     <div class="container">
-        <!-- Sidebar with Examples -->
-        <div class="sidebar">
-            <div style="padding-bottom: 10px; font-weight: bold; color: #fff;">Examples</div>
-            <div id="example-list"></div>
-        </div>
-
-        <!-- Main Editor Area -->
-        <div class="main-area">
-            <div class="editor-container">
-                <textarea id="code" spellcheck="false"></textarea>
+        
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>EXAMPLES</h3>
             </div>
-            <div class="output-container" id="output">
-                <div style="color: #666;">// Output will appear here...</div>
+            <div id="example-list" class="example-list"></div>
+            <div class="sidebar-footer">
+                <div id="status" class="status-indicator">
+                    <span class="dot"></span>
+                    <span class="text">Connecting...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Editor Area -->
+        <main class="editor-pane">
+            <div class="pane-header">
+                <span class="tab active">script.eq</span>
+            </div>
+            
+            <div class="code-wrapper">
+                <div id="lineNumbers" class="line-numbers">1</div>
+                
+                <!-- Syntax Highlighting Overlay -->
+                <div class="editor-stack">
+                    <pre id="highlighting" aria-hidden="true"><code class="language-eloquence" id="highlighting-content"></code></pre>
+                    <textarea id="code" spellcheck="false" oninput="update(this.value); syncScroll(this);" onscroll="syncScroll(this);" onkeydown="checkTab(this, event)"></textarea>
+                </div>
+            </div>
+        </main>
+
+        <!-- Output Area -->
+        <aside class="output-pane">
+            <div class="pane-header">
+                <span>Output Terminal</span>
+                <button class="clear-btn" onclick="clearOutput()">Clear</button>
+            </div>
+            <div id="output" class="console">
+                <div class="console-placeholder">// Output will appear here...</div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- SYNTAX MODAL (REDESIGNED) -->
+    <div id="syntaxModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2>📘 Syntax Book</h2>
+                <button class="close-btn" onclick="toggleModal('syntaxModal')">&times;</button>
+            </div>
+            
+            <div class="docs-layout">
+                <!-- Navigation Sidebar -->
+                <div class="docs-nav">
+                    <button class="doc-tab active" onclick="showDoc('vars')">Variables</button>
+                    <button class="doc-tab" onclick="showDoc('math')">Math & Ops</button>
+                    <button class="doc-tab" onclick="showDoc('flow')">Control Flow</button>
+                    <button class="doc-tab" onclick="showDoc('funcs')">Functions</button>
+                    <button class="doc-tab" onclick="showDoc('structs')">Structs</button>
+                    <button class="doc-tab" onclick="showDoc('mem')">Pointers</button>
+                    <button class="doc-tab" onclick="showDoc('lib')">Std Library</button>
+                </div>
+
+                <!-- Content Area -->
+                <div class="docs-content">
+                    
+                    <div id="vars" class="doc-page active">
+                        <h3>Variables & Types</h3>
+                        <p>Eloquence uses dynamic typing. The assignment keyword is <code>is</code>.</p>
+                        <div class="code-block">
+x is 10              // Integer
+pi is 3.14           // Float
+name is "Eloquence"  // String
+active is true       // Boolean
+empty is none        // Null</div>
+                    </div>
+
+                    <div id="math" class="doc-page">
+                        <h3>Operators</h3>
+                        <p>Symbols are replaced with English keywords.</p>
+                        <table>
+                            <tr><th>Math</th><th>Logic</th><th>Comparison</th></tr>
+                            <tr><td><code>adds</code></td><td><code>and</code></td><td><code>equals</code></td></tr>
+                            <tr><td><code>subtracts</code></td><td><code>or</code></td><td><code>not_equals</code></td></tr>
+                            <tr><td><code>times</code></td><td><code>not</code></td><td><code>greater</code></td></tr>
+                            <tr><td><code>divides</code></td><td></td><td><code>less</code></td></tr>
+                        </table>
+                        <div class="code-block">x is 10 adds 5 times 2  // Result: 20</div>
+                    </div>
+
+                    <div id="flow" class="doc-page">
+                        <h3>Control Flow</h3>
+                        <p><strong>Note:</strong> Braces <code>{ }</code> are mandatory.</p>
+                        
+                        <h4>If / Else</h4>
+                        <div class="code-block">
+if x greater 10 {
+    show("High")
+} else {
+    show("Low")
+}</div>
+                        <h4>Loops</h4>
+                        <div class="code-block">
+while x greater 0 {
+    x is x minus 1
+}
+
+for item in list {
+    show(item)
+}</div>
+                    </div>
+
+                    <div id="funcs" class="doc-page">
+                        <h3>Functions</h3>
+                        <p>Defined using <code>takes</code>.</p>
+                        <div class="code-block">
+// Definition
+add is takes(a, b) {
+    return a adds b
+}
+
+// Call
+res is add(10, 20)</div>
+                    </div>
+
+                    <div id="structs" class="doc-page">
+                        <h3>Structs</h3>
+                        <p>Custom data structures.</p>
+                        <div class="code-block">
+define User as struct { name, age }
+
+// Instantiate
+u is User { 
+    name: "Amogh", 
+    age: 25 
+}
+
+show(u.name)</div>
+                    </div>
+
+                    <div id="mem" class="doc-page">
+                        <h3>Memory (Pointers)</h3>
+                        <p>Direct memory manipulation.</p>
+                        <table class="simple-table">
+                            <tr><td>Reference</td><td><code>p is pointing to x</code></td></tr>
+                            <tr><td>Read</td><td><code>v is pointing from p</code></td></tr>
+                            <tr><td>Write</td><td><code>pointing from p is 99</code></td></tr>
+                        </table>
+                    </div>
+
+                    <div id="lib" class="doc-page">
+                        <h3>Standard Library</h3>
+                        <div class="tag-cloud">
+                            <span>show(...)</span>
+                            <span>count(seq)</span>
+                            <span>append(arr, v)</span>
+                            <span>upper(str)</span>
+                            <span>lower(str)</span>
+                            <span>split(str, sep)</span>
+                            <span>join(arr, sep)</span>
+                            <span>str(val)</span>
+                            <span>ask(msg)</span>
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- About Modal (Hidden but preserved structure if needed) -->
+    <div id="aboutModal" class="modal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h2>About</h2>
+                <button class="close-btn" onclick="toggleModal('aboutModal')">&times;</button>
+            </div>
+            <div class="modal-body centered-content">
+                <h3>Eloquence</h3>
+                <p>The art of fluent logic.</p>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

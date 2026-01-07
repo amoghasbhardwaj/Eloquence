@@ -1,153 +1,264 @@
-# Token Package - Eloquence Programming Language
+<p align="center">
+  <img src="https://img.shields.io/badge/Eloquence-English--First%20Language-2f80ed?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Package-Token-eb5757?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Stage-Lexical%20Analysis-111111?style=for-the-badge" />
+</p>
 
-The token package constitutes the atomic vocabulary of the Eloquence programming language. It serves as the architectural foundation that bridges raw text processing (Lexing) and semantic understanding (Parsing).
+# Token Package
+## Eloquence Programming Language
 
-This package defines the canonical set of symbols, keywords, and operators that transform Eloquence from a concept into a computable syntax, strictly adhering to the "English-First" design philosophy.
+The **token package** defines the *lexical building blocks* of the Eloquence programming language.
+
+It is responsible for transforming raw source text into **typed symbols** that the compiler can reason about. This package sits at the boundary between *plain text* and *language semantics*, enabling the Lexer and Parser to communicate using a precise, standardized vocabulary.
+
+---
 
 ## Table of Contents
 
-1.  Conceptual Overview
-2.  Architecture and Implementation
-3.  The English-First Mapping
-4.  Data Structures
-5.  Performance Strategy
-6.  Visual Architecture
-7.  Testing and Quality Assurance
+- [Conceptual Overview](#conceptual-overview)
+- [Position in the Compiler Pipeline](#position-in-the-compiler-pipeline)
+- [Folder Structure](#folder-structure)
+- [Core Architecture](#core-architecture)
+  - [Token Types](#token-types)
+  - [Keyword Resolution](#keyword-resolution)
+- [English-First Syntax Mapping](#english-first-syntax-mapping)
+- [Token Data Model](#token-data-model)
+- [Performance Considerations](#performance-considerations)
+- [Testing Strategy](#testing-strategy)
+- [Benchmarks](#benchmarks)
+- [Running Tests](#running-tests)
 
 ---
 
 ## Conceptual Overview
 
-### What is a Token?
-In compiler design, if source code is a paragraph of text, a Token is a single grammatical unit: a word, a punctuation mark, or a number.
+In human terms, source code is a sentence.  
+In compiler terms, source code is just **characters**.
 
-The computer does not natively understand the string "x adds 5". The Token Package defines the types that allow the Lexer to transform that string into a stream of meaningful data objects:
-1.  IDENT "x"
-2.  OP_ADDS
-3.  INT "5"
+The token package defines how those characters become **meaningful units**.
 
-### Role in Eloquence
-Unlike C-style languages that rely on dense symbols (like {, &&, !=), Eloquence relies on natural language. The Token package is responsible for standardizing these English phrases into machine-readable constants (e.g., mapping "pointing to" to POINTING_TO).
+Example source:
+
+    x adds 5
+
+After tokenization:
+
+    IDENT("x")
+    ADDS
+    INT("5")
+
+Each word or symbol becomes a **Token** with:
+- a semantic type
+- a literal value
+- a precise source location
+
+This is the **first semantic step** in the Eloquence compiler.
 
 ---
 
-## Architecture and Implementation
+## Position in the Compiler Pipeline
 
-### 1. Type Definition Strategy
-We utilize a String-Typed Enum approach for TokenType.
+The token package is not used directly by users. It exists to support the compiler pipeline.
+
+Pipeline overview:
+
+    Source Code
+        ↓
+      Lexer
+        ↓
+    Token Stream  ←── token package defines this
+        ↓
+      Parser
+        ↓
+        AST
+        ↓
+     Evaluator
+
+Without tokens, the parser would have no structured input.
+
+---
+
+## Folder Structure
+
+    token/
+    ├── token.go
+    ├── token_unit_test.go
+    ├── token_integration_test.go
+    ├── token_sanity_test.go
+    ├── token_edge_test.go
+    └── token_benchmark_test.go
+
+### File Responsibilities
+
+| File | Responsibility |
+|----|----|
+| token.go | Token types, constants, keyword map |
+| token_unit_test.go | Verifies keyword → token mappings |
+| token_integration_test.go | Groups tokens by language feature |
+| token_sanity_test.go | Full program token streams |
+| token_edge_test.go | Case sensitivity and boundary inputs |
+| token_benchmark_test.go | Performance of LookupIdent |
+
+---
+
+## Core Architecture
+
+### Token Types
+
+Token categories are represented using a string-based enum:
 
     type TokenType string
 
-*   Why String? While integers are marginally faster in some specific compiler implementations, using strings provides superior debuggability. When a parser crashes with an error saying "Expected IDENT, got EOF", it is immediately readable by the developer without needing to look up integer codes in a reference table.
+This choice prioritizes **clarity over micro-optimizations**.
 
-### 2. O(1) Keyword Resolution
-The LookupIdent function is the critical logic gate of this package. It uses a Hash Map Lookup strategy rather than a switch statement or linear search.
+Advantages:
+- Readable parser error messages
+- Self-documenting debug output
+- No integer → string mapping required
 
-*   Mechanism: Go's native map implementation.
-*   Complexity: O(1) (Constant Time).
-*   Purpose: To instantly differentiate between a user's variable (e.g., myVar) and a reserved language keyword (e.g., return) regardless of how many keywords are added to the language in the future.
+Example error:
 
----
+    expected IDENT, got RETURN
 
-## The English-First Mapping
-
-Eloquence replaces dense symbolic notation with readable English. This table illustrates the translation layer defined in token.go.
-
-| Category       | Standard C/Go Syntax | Eloquence Keyword | Internal Token Type |
-| :---           | :---                 | :---              | :---                |
-| Assignment     | =                    | is                | IS                  |
-| Arithmetic     | +                    | adds              | ADDS                |
-| Arithmetic     | *                    | times             | TIMES               |
-| Comparison     | ==                   | equals            | EQUALS              |
-| Comparison     | >=                   | greater_equal     | GREATER_EQUAL       |
-| Pointer Ref    | &                    | pointing to       | POINTING_TO         |
-| Pointer Deref  | *                    | pointing from     | POINTING_FROM       |
-| Definition     | func                 | takes             | TAKES               |
-| Nullability    | nil / null           | none              | NIL                 |
+This is immediately understandable during development.
 
 ---
 
-## Data Structures
+### Keyword Resolution
 
-### The Token Struct
-This struct is the data transfer object (DTO) passed from the Lexer to the Parser. It is designed to be lightweight to minimize garbage collection overhead during large compilations.
+The central logic is keyword lookup:
+
+    func LookupIdent(ident string) TokenType
+
+Resolution strategy:
+
+1. Check identifier against a keyword map
+2. If found, return keyword token
+3. Otherwise, default to IDENT
+
+| Property | Value |
+|------|------|
+| Data structure | Go map |
+| Time complexity | O(1) |
+| Allocations | None |
+| Execution frequency | Every identifier |
+
+Design note:  
+Built-ins like `show` are **not** keywords. They remain identifiers to allow user overrides and future extensibility.
+
+---
+
+## English-First Syntax Mapping
+
+Eloquence replaces symbolic syntax with readable English phrases.  
+The token package defines how these phrases map to internal representations.
+
+### Arithmetic & Assignment
+
+| Concept | Traditional | Eloquence | Token |
+|------|------|------|------|
+| Assignment | = | is | IS |
+| Addition | + | adds | ADDS |
+| Subtraction | - | minus | MINUS |
+| Multiplication | * | times | TIMES |
+
+### Comparison & Logic
+
+| Concept | Eloquence | Token |
+|------|------|------|
+| Equality | equals | EQUALS |
+| Inequality | not_equals | NOT_EQUALS |
+| Logical AND | and | AND |
+| Logical OR | or | OR |
+| Negation | not | NOT |
+
+### Control & Structure
+
+| Feature | Eloquence | Token |
+|------|------|------|
+| Function | takes | TAKES |
+| Import | include | INCLUDE |
+| Loop | for … in | FOR / IN |
+| Pointer Ref | pointing to | POINTING_TO |
+| Pointer Deref | pointing from | POINTING_FROM |
+
+This mapping layer is where **human-readable syntax becomes machine-readable logic**.
+
+---
+
+## Token Data Model
+
+The Token struct is the data object passed from the Lexer to the Parser.
 
     type Token struct {
-        Type    TokenType // The semantic category (e.g., IS, IDENT, INT)
-        Literal string    // The actual text captured (e.g., "is", "myVar", "10")
-        Line    int       // Line number (Critical for error reporting)
-        Column  int       // Column number (Critical for IDE linting)
+        Type    TokenType
+        Literal string
+        Line    int
+        Column  int
     }
 
----
+### Design Goals
 
-## Performance Strategy
+- Minimal memory footprint
+- Accurate error diagnostics
+- IDE and tooling compatibility
 
-The LookupIdent function is hot-path code, meaning it is executed for every single word found in a source file.
-
-1.  Map Initialization: The keywords map is initialized once at startup time.
-2.  No Allocation: The lookup performs a read-only operation on the map; it does not allocate new memory during validation.
-3.  Short-Circuiting: If a word is not found in the map, it immediately defaults to being an Identifier (user variable).
-
----
-
-## Visual Architecture
-
-The following flow illustrates the lifecycle of a word within the Eloquence front-end:
-
-    RAW SOURCE CODE ("x is 10")
-          |
-          v
-      [ LEXER ] 
-    (Breaks text into words: "x", "is", "10")
-          |
-          v
-    [ token.LookupIdent ]
-          |
-    +-----+----------------------+
-    |                            |
-    v                            v
-    RESERVED KEYWORD             USER IDENTIFIER
-    Input: "is"                  Input: "x"
-    Output: token.IS             Output: token.IDENT
-          |                            |
-          +----------+-----------------+
-                     |
-                     v
-                [ PARSER ]
-          (Builds Abstract Syntax Tree)
+Line and column tracking enables:
+- Precise runtime errors
+- Static analysis
+- Editor integration
 
 ---
 
-## Testing and Quality Assurance
+## Performance Considerations
 
-The package employs a rigorous testing matrix to ensure stability and performance across all operating conditions.
+Tokenization is on the compiler hot path.
 
-### 1. Unit Tests (token_unit_test.go)
-Validates the basic 1-to-1 mapping of keywords to constants.
-*   Goal: Ensure "is" returns IS and "while" returns WHILE.
+Optimizations used:
+- Keyword map initialized once
+- Read-only access during execution
+- Immediate fallback to IDENT
 
-### 2. Edge Case Tests (token_edge_test.go)
-Tests boundary conditions and unusual inputs.
-*   Scenarios: Empty strings, numeric-prefixed identifiers (e.g., "123abc"), case sensitivity checks ("TRUE" vs "true"), and partial matches for multi-word keywords.
+There is **no regex**, **no reflection**, and **no allocation** during keyword lookup.
 
-### 3. Sanity Tests (token_sanity_test.go)
-A high-level check using a simulated program stream.
-*   Goal: Ensure that a sequence of tokens representing a real program does not trigger panics or state corruption.
+---
 
-### 4. Integration Tests (token_integration_test.go)
-Groups tests by functional category (Math, Logic, Pointers, Structures) to ensure complete feature coverage.
+## Testing Strategy
 
-### 5. Benchmarks (token_benchmark_test.go)
-Measures the latency of the lookup function.
-*   Goal: Ensure lookups remain in the nanosecond range to support fast compilation.
+The token package is tested at multiple levels.
 
-### Running the Tests
+| Test Suite | Purpose |
+|----|----|
+| token_unit_test | Keyword correctness |
+| token_edge_test | Boundary and malformed input |
+| token_integration_test | Feature completeness |
+| token_sanity_test | Stability on full programs |
+| token_benchmark_test | Performance regression guard |
 
-To execute the full suite with verbose output:
+Tests ensure correctness without coupling to the Lexer or Parser.
 
-    go test ./token -v
+---
 
-To run the performance benchmarks:
+## Benchmarks
 
-    go test ./token -bench=.
+Sample benchmark output:
+
+    BenchmarkLookupIdent
+    100000000 iterations
+    ~12 ns/op
+
+Interpretation:
+- Keyword resolution is effectively free
+- Lexer performance is limited by IO, not tokens
+
+---
+
+## Running Tests
+
+Run all token tests:
+
+    go test -v ./token
+
+Run performance benchmarks:
+
+    go test -bench=. ./token

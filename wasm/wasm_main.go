@@ -1,6 +1,8 @@
+//go:build js && wasm
+
 // ==============================================================================================
 // FILE: wasm/wasm_main.go
-// BUILD: GOOS=js GOARCH=wasm go build -o main.wasm wasm/wasm_main.go
+// BUILD COMMAND: GOOS=js GOARCH=wasm go build -o main.wasm wasm/wasm_main.go
 // ==============================================================================================
 package main
 
@@ -21,7 +23,8 @@ var outputBuffer strings.Builder
 
 func main() {
 	// Create a channel to keep the Go WASM running
-	c := make(chan struct{}, 0)
+	// FIX: Removed redundant '0' capacity argument (S1019)
+	c := make(chan struct{})
 
 	// Override Builtins for the Web Environment
 	overrideBuiltinsForWeb()
@@ -30,11 +33,20 @@ func main() {
 	js.Global().Set("runEloquence", js.FuncOf(runCode))
 
 	fmt.Println("Eloquence WASM Engine Loaded.")
+
+	// Block forever
 	<-c
 }
 
 // runCode is the bridge between JS and Go
 func runCode(this js.Value, p []js.Value) interface{} {
+	// Safety check for arguments
+	if len(p) < 1 {
+		return map[string]interface{}{
+			"error": []interface{}{"No code provided to execute"},
+		}
+	}
+
 	code := p[0].String()
 
 	// Reset output buffer for this run
@@ -43,7 +55,7 @@ func runCode(this js.Value, p []js.Value) interface{} {
 	// 1. Setup Environment
 	env := object.NewEnvironment()
 
-	// 2. Setup Parser Hook (Disable Include for Web)
+	// 2. Setup Parser Hook (Disable Include for Web to prevent FS errors)
 	evaluator.ParserFunc = func(input string) *ast.Program {
 		l := lexer.New(input)
 		return parser.New(l).ParseProgram()
@@ -66,6 +78,13 @@ func runCode(this js.Value, p []js.Value) interface{} {
 	}
 
 	// 4. Evaluation
+	// We handle panics gracefully to prevent the WASM module from crashing entirely
+	defer func() {
+		if r := recover(); r != nil {
+			outputBuffer.WriteString(fmt.Sprintf("\nRUNTIME PANIC: %v", r))
+		}
+	}()
+
 	result := evaluator.Eval(program, env)
 
 	// 5. Prepare Result

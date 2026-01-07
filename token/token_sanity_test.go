@@ -14,29 +14,41 @@ import "testing"
 func TestSanityFullProgram(t *testing.T) {
 	// Program representation:
 	// x is 10
-	// if x equals 10 show x end
+	// if x equals 10 { show(x) }
 	programWords := []string{
 		"x", "is", "10",
-		"if", "x", "equals", "10",
-		"show", "x",
-		"end",
+		"if", "x", "equals", "10", "{",
+		"show", "(", "x", ")",
+		"}",
 	}
 
 	// Expected types for the sequence above
-	// Note: "10" is conceptually an INT, but LookupIdent treats anything not in the map as IDENT.
-	// The Lexer handles INT/FLOAT logic distinct from LookupIdent.
-	// So "10" here results in IDENT from *LookupIdent*, which is correct behavior for this specific function.
 	expectedTypes := []TokenType{
-		IDENT, IS, IDENT,
-		IF, IDENT, EQUALS, IDENT,
-		SHOW, IDENT,
-		END,
+		IDENT, IS, IDENT, // 10 is IDENT via LookupIdent (lexer handles numbers separately)
+		IF, IDENT, EQUALS, IDENT, LBRACE,
+		IDENT, LPAREN, IDENT, RPAREN, // 'show' is now an IDENT
+		RBRACE,
 	}
 
 	for i, word := range programWords {
 		got := LookupIdent(word)
-		if got != expectedTypes[i] {
-			t.Errorf("FAIL: Word index %d (%q). Got %q, expected %q", i, word, got, expectedTypes[i])
+		// Special handling: punctuation (braces/parens) usually skips LookupIdent in Lexer,
+		// but if passed here, they default to IDENT.
+		// For this sanity test, we assume direct token mapping for keywords, IDENT for others.
+
+		expected := expectedTypes[i]
+
+		// Map special chars manually for this specific test structure if needed,
+		// or rely on the fact that LookupIdent returns IDENT for symbols not in keyword map.
+		if word == "{" || word == "}" || word == "(" || word == ")" {
+			if got != IDENT {
+				t.Errorf("Symbols should be IDENT in raw lookup. Got %q", got)
+			}
+			continue
+		}
+
+		if got != expected {
+			t.Errorf("FAIL: Word index %d (%q). Got %q, expected %q", i, word, got, expected)
 		}
 	}
 }

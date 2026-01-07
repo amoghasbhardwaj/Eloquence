@@ -1,3 +1,6 @@
+// ==============================================================================================
+// FILE: main.go
+// ==============================================================================================
 package main
 
 import (
@@ -5,6 +8,7 @@ import (
 	"os"
 	"os/user"
 
+	"eloquence/ast"
 	"eloquence/evaluator"
 	"eloquence/lexer"
 	"eloquence/object"
@@ -13,20 +17,28 @@ import (
 )
 
 func main() {
+	// CONFIGURE IMPORTS:
+	// Allow evaluator to use the parser logic
+	evaluator.ParserFunc = func(input string) *ast.Program {
+		l := lexer.New(input)
+		p := parser.New(l)
+		return p.ParseProgram()
+	}
+
 	// 1. Script Mode: go run main.go myfile.eq
 	if len(os.Args) > 1 {
 		runFile(os.Args[1])
 		return
 	}
 
-	// 2. REPL Mode: go run main.go
+	// 2. REPL Mode
 	currentUser, err := user.Current()
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Printf("Hello %s! Welcome to the Eloquence programming language.\n", currentUser.Username)
-	fmt.Println("Type your commands below (or 'go run main.go <file>' to execute a script).")
+	fmt.Println("Type .help for commands")
 
 	repl.Start(os.Stdin, os.Stdout)
 }

@@ -6,6 +6,7 @@
 |-- CONTRIBUTING.md
 |-- LICENSE
 |-- README.md
+|-- SYNTAX.md
 |-- ast
     |-- README.md
     |-- ast.go
@@ -31,6 +32,7 @@
 |-- main.go
 |-- object
     |-- README.md
+    |-- builtins.go
     |-- environment.go
     |-- environment_unit_test.go
     |-- object.go
@@ -52,6 +54,7 @@
     |-- repl_integration_test.go
     |-- repl_sanity_test.go
     |-- repl_unit_test.go
+|-- test_release.eq
 |-- tests
     |-- README.md
     |-- main_benchmark_test.go
@@ -64,3 +67,11 @@
     |-- token_integration_test.go
     |-- token_sanity_test.go
     |-- token_unit_test.go
+|-- wasm
+    |-- README.md
+    |-- index.html
+    |-- main.wasm
+    |-- script.js
+    |-- style.css
+    |-- wasm_exec.js
+    |-- wasm_main.go

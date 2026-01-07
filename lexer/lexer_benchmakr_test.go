@@ -1,6 +1,10 @@
-// ----------------------------------------------------------------------------
-// FILE: lexer/lexer_benchmakr_test.go
-// ----------------------------------------------------------------------------
+// ==============================================================================================
+// FILE: lexer/lexer_benchmark_test.go
+// ==============================================================================================
+// PURPOSE: Benchmarks the throughput of the lexical analysis.
+//          It simulates a hot loop of tokenizing a standard expression to ensure low latency.
+// ==============================================================================================
+
 package lexer
 
 import (
@@ -9,9 +13,7 @@ import (
 	"eloquence/token"
 )
 
-// BenchmarkLexerNextToken benchmarks the throughput of the lexical analysis.
-// It simulates a hot loop of tokenizing a standard arithmetic expression.
-//
+// BenchmarkLexerNextToken measures the performance of scanning.
 // Command to run: go test -bench=. ./lexer
 func BenchmarkLexerNextToken(b *testing.B) {
 	// A representative string containing identifiers, keywords, numbers, and operators.

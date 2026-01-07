@@ -13,7 +13,6 @@ import (
 
 // TestTokenConstants verifies that the LookupIdent function correctly maps
 // string literals to their respective TokenType constants.
-// This is critical because if this mapping fails, the Parser will misinterpret keywords as variables.
 func TestTokenConstants(t *testing.T) {
 	// Table-driven test setup
 	tests := []struct {
@@ -34,10 +33,13 @@ func TestTokenConstants(t *testing.T) {
 		{"if", IF},
 		{"return", RETURN},
 		{"end", END},
+		{"in", IN}, // New: Range loop keyword
 
-		// 4. Check Functions & IO
+		// 4. Check Functions
 		{"takes", TAKES},
-		{"show", SHOW},
+
+		// CRITICAL: 'show' should NOT be a keyword anymore, it is a built-in function
+		{"show", IDENT},
 
 		// 5. Check Exception Handling
 		{"try", TRY},
@@ -48,9 +50,10 @@ func TestTokenConstants(t *testing.T) {
 		{"false", BOOL},
 		{"none", NIL},
 
-		// 7. Check Structs
+		// 7. Check Structs & Modules
 		{"define", DEFINE},
 		{"struct", STRUCT},
+		{"include", INCLUDE},
 
 		// 8. Check Non-Keywords (Standard Identifiers)
 		{"myVariable", IDENT},
@@ -69,7 +72,6 @@ func TestTokenConstants(t *testing.T) {
 }
 
 // TestTokenStructStructure verifies that the Token struct is defined correctly.
-// While simple, this ensures no regressions occur if fields are renamed later.
 func TestTokenStructStructure(t *testing.T) {
 	// Create a dummy token
 	tok := Token{

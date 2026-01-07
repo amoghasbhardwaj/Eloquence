@@ -1,183 +1,226 @@
-// wasm/script.js
+// ==================================================================
+// FILE: script.js
+// PURPOSE: Logic for Eloquence Playground & Syntax Tabs
+// ==================================================================
 
-// ---------------------------------------------------------
-// EXAMPLES LIBRARY
-// ---------------------------------------------------------
+// --- 1. DATA: EXAMPLES ---
 const EXAMPLES = {
-    "1. Hello World": `
-// Basic output
-show("Hello, Web World!")
+    "1. Hello World": `// 1. Basic Output
+show("Hello, Eloquence!")
+
 x is 10
 y is 20
-show("Calculation:", x adds y)
-`,
-    "2. String Manipulation": `
-// Built-in string functions
-name is "Eloquence"
-show("Original:", name)
-show("Upper:", upper(name))
-show("Lower:", lower(name))
+// Natural language math
+result is x adds y
 
-// Splitting and Joining
-sentence is "Code is Art"
-parts is split(sentence, " ")
-show("Split Array:", parts)
-show("Joined:", join(parts, "-"))
-`,
-    "3. Control Flow (Loops)": `
-// While Loop
-counter is 0
-show("Starting Loop...")
+show("Result:", result)`,
 
-// Note: Use 'less' instead of '<'
-while counter less 3 {
-    show("Counter is:", counter)
-    counter is counter adds 1
+    "2. Logic": `// 2. Logic & Control Flow
+score is 85
+
+if score greater 80 {
+    show("Pass")
+} else {
+    show("Fail")
+}`,
+
+    "3. Loops": `// 3. Loops
+n is 3
+while n greater 0 {
+    show(n)
+    n is n minus 1
+}
+show("Liftoff!")`,
+
+    "4. Functions": `// 4. Functions
+add is takes(a, b) {
+    return a adds b
 }
 
-// Range Loop
-fruits is ["Apple", "Banana", "Cherry"]
-show("My Fruits:")
-for fruit in fruits {
-    show("- " adds fruit)
+res is add(10, 20)
+show(res)`,
+
+    "5. Structs": `// 5. Structs
+define User as struct { name, role }
+
+u is User { 
+    name: "Amogh", 
+    role: "Admin" 
 }
-`,
-    "4. Arrays & Maps": `
-// Array Operations
-nums is [10, 20, 30]
-show("Count:", count(nums))
+show(u.name)`,
 
-// Append returns a new array
-nums is append(nums, 40)
-show("Updated:", nums)
+    "6. Pointers": `// 6. Memory
+val is 100
+ptr is pointing to val
 
-// Hash Maps
-user is {
-    "name": "Amogh",
-    "role": "Creator",
-    "level": 99
-}
-show("User Info:", user)
-show("User Name:", user["name"])
-`,
-    "5. Structs (Custom Types)": `
-// Define a structure
-define Person as struct { name, age, city }
-
-// Instantiate
-p1 is Person { name: "Alice", age: 25, city: "NYC" }
-p2 is Person { name: "Bob", age: 30, city: "London" }
-
-show(p1)
-show(p2.name adds " lives in " adds p2.city)
-`,
-    "6. Pointers": `
-// Memory Management
-x is 100
-ptr is pointing to x
-
-show("X is:", x)
-show("Pointer address:", ptr)
-show("Dereferenced:", pointing from ptr)
-
-// Modify via pointer
+// Mutate via pointer
 pointing from ptr is 500
-show("X is now:", x)
-`,
-    "7. Linked List (Advanced)": `
-// Implementing a Linked List
-define Node as struct { value, next }
+show(val)`
+};
 
-// Create Nodes
-n3 is Node { value: 30, next: none }
-n2 is Node { value: 20, next: n3 }
-head is Node { value: 10, next: n2 }
+// --- 2. DOM ELEMENTS ---
+const codeInput = document.getElementById('code');
+const outputDiv = document.getElementById('output');
+const exampleList = document.getElementById('example-list');
+const statusDot = document.querySelector('#status .dot');
+const statusText = document.querySelector('#status .text');
+const lineNumbers = document.getElementById('lineNumbers');
 
-show("Traversing Linked List:")
+// --- 3. EDITOR SYNTAX HIGHLIGHTING ---
+function update(text) {
+    let result_element = document.getElementById("highlighting-content");
+    
+    // Handle final newline
+    if(text[text.length-1] == "\n") text += " ";
+    
+    // Escape HTML
+    result_element.innerHTML = text.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
-// Function to traverse
-traverse is takes(current) {
-    while current not_equals none {
-        show("Node Value:", current.value)
-        current is current.next
+    let data = result_element.innerHTML;
+
+    // 1. Strings
+    data = data.replace(/"(.*?)"/g, '<span class="tok-string">"$1"</span>');
+    // 2. Comments
+    data = data.replace(/(\/\/.*)/g, '<span class="tok-comment">$1</span>');
+    // 3. Keywords
+    const keywords = ["is", "adds", "subtracts", "times", "divides", "if", "else", "while", "for", "in", "return", "takes", "define", "struct", "as", "true", "false", "none", "pointing", "to", "from", "and", "or", "not", "greater", "less", "equals", "not_equals"];
+    keywords.forEach(kw => {
+        let regex = new RegExp(`\\b${kw}\\b`, 'g');
+        data = data.replace(regex, `<span class="tok-keyword">${kw}</span>`);
+    });
+    // 4. Functions
+    const funcs = ["show", "count", "append", "upper", "lower", "split", "join", "str", "ask"];
+    funcs.forEach(fn => {
+        data = data.replace(new RegExp(`\\b${fn}\\b`, 'g'), `<span class="tok-func">${fn}</span>`);
+    });
+    // 5. Numbers
+    data = data.replace(/\b(\d+)\b/g, '<span class="tok-number">$1</span>');
+
+    result_element.innerHTML = data;
+    updateLineNumbers(text);
+}
+
+function syncScroll(element) {
+    let result_element = document.querySelector("#highlighting");
+    result_element.scrollTop = element.scrollTop;
+    result_element.scrollLeft = element.scrollLeft;
+    lineNumbers.scrollTop = element.scrollTop;
+}
+
+function checkTab(element, event) {
+    if(event.key == "Tab") {
+        event.preventDefault();
+        let start = element.selectionStart;
+        let end = element.selectionEnd;
+        element.value = element.value.substring(0, start) + "    " + element.value.substring(end);
+        element.selectionStart = element.selectionEnd = start + 4;
+        update(element.value);
     }
 }
 
-traverse(head)
-`
-};
+// --- 4. APP LOGIC ---
 
-// ---------------------------------------------------------
-// WASM LOADER
-// ---------------------------------------------------------
-const go = new Go();
-let wasmReady = false;
-
-WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
-    go.run(result.instance);
-    wasmReady = true;
-    document.getElementById("status").innerText = "Ready";
-    document.getElementById("status").style.color = "#4ec9b0";
-});
-
-// ---------------------------------------------------------
-// UI LOGIC
-// ---------------------------------------------------------
-
-function loadExample(key) {
-    document.getElementById("code").value = EXAMPLES[key].trim();
+function updateLineNumbers(text) {
+    const lines = text.split('\n').length;
+    lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
 }
 
-function run() {
-    if (!wasmReady) {
-        alert("WASM is still loading...");
+// Load Examples
+Object.keys(EXAMPLES).forEach((key, index) => {
+    const item = document.createElement('div');
+    item.innerText = key;
+    item.className = "example-item";
+    if (index === 0) item.classList.add('active');
+    
+    item.onclick = () => {
+        document.querySelectorAll('.example-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        codeInput.value = EXAMPLES[key];
+        update(codeInput.value);
+    };
+    exampleList.appendChild(item);
+});
+
+// Init
+codeInput.value = EXAMPLES["1. Hello World"];
+update(codeInput.value);
+
+// Run Logic
+async function run() {
+    outputDiv.innerHTML = "";
+    const source = codeInput.value;
+
+    if (!window.runEloquence) {
+        log("❌ Engine not loaded.", "log-error");
         return;
     }
 
-    const input = document.getElementById("code").value;
-    const outputDiv = document.getElementById("output");
-    
-    // Clear previous output
-    outputDiv.innerHTML = "";
-
     try {
-        // CALL GO FUNCTION
-        const response = runEloquence(input);
-
-        // Print Logs (Output from show)
-        if (response.logs) {
-            const lines = response.logs.split("\n");
-            lines.forEach(line => {
-                if(line) outputDiv.innerHTML += `<div class="log-line">${line}</div>`;
-            });
-        }
-
-        // Print Result
-        if (response.result) {
-            outputDiv.innerHTML += `<div class="result-line">=> ${response.result}</div>`;
-        }
-
-        // Print Errors
+        const response = window.runEloquence(source);
         if (response.error) {
-            response.error.forEach(err => {
-                outputDiv.innerHTML += `<div class="error-line">${err}</div>`;
-            });
+            response.error.forEach(err => log("❌ " + err, "log-error"));
+            return;
+        }
+        if (response.logs) {
+            response.logs.split('\n').forEach(line => { if(line) log(line); });
+        }
+        if (response.result && response.result !== "none") {
+            log("➤ " + response.result, "log-result");
+        } else if (!response.logs) {
+            log("// Done.", "console-placeholder");
         }
     } catch (e) {
-        outputDiv.innerHTML += `<div class="error-line">System Error: ${e}</div>`;
+        log("System Error: " + e.message, "log-error");
     }
 }
 
-// Populate Sidebar
-window.onload = function() {
-    const sidebar = document.getElementById("example-list");
-    for (const key in EXAMPLES) {
-        const btn = document.createElement("button");
-        btn.innerText = key;
-        btn.className = "example-btn";
-        btn.onclick = () => loadExample(key);
-        sidebar.appendChild(btn);
+function log(msg, cls = "log-entry") {
+    const div = document.createElement('div');
+    div.className = cls;
+    div.innerText = msg;
+    outputDiv.appendChild(div);
+    outputDiv.scrollTop = outputDiv.scrollHeight;
+}
+
+function clearOutput() {
+    outputDiv.innerHTML = '<div class="console-placeholder">// Output cleared</div>';
+}
+
+// --- 5. DOCS LOGIC ---
+
+function toggleModal(id) {
+    const m = document.getElementById(id);
+    m.style.display = m.style.display === 'block' ? 'none' : 'block';
+}
+
+function showDoc(id) {
+    // Hide all pages
+    document.querySelectorAll('.doc-page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.doc-tab').forEach(t => t.classList.remove('active'));
+    
+    // Show selected
+    document.getElementById(id).classList.add('active');
+    
+    // Highlight tab
+    // Find the button that called this function based on onclick text
+    const buttons = document.querySelectorAll('.doc-tab');
+    for (let btn of buttons) {
+        if(btn.getAttribute('onclick').includes(id)) {
+            btn.classList.add('active');
+            break;
+        }
     }
-    // Load first example by default
-    loadExample("1. Hello World");
-};
+}
+
+window.onclick = (e) => {
+    if (e.target.classList.contains('modal')) e.target.style.display = 'none';
+}
+
+// --- 6. WASM INIT ---
+const go = new Go();
+WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((res) => {
+    go.run(res.instance);
+    statusDot.classList.add('ready');
+    statusText.innerText = "Engine Ready";
+    statusDot.style.background = "var(--success)";
+});
