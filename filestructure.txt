@@ -7,6 +7,14 @@
 |-- LICENSE
 |-- README.md
 |-- SYNTAX.md
+|-- assets
+    |-- evaluator.png
+    |-- fcf.png
+    |-- lexer.png
+    |-- memory.png
+    |-- ood.png
+    |-- parser.png
+    |-- wasm.png
 |-- ast
     |-- README.md
     |-- ast.go

@@ -1,4 +1,4 @@
-# 🖋️ Eloquence Programming Language
+# Eloquence Programming Language
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg?style=flat-square)
 ![Go Version](https://img.shields.io/badge/go-1.20+-blue.svg?style=flat-square)
@@ -47,15 +47,19 @@ Eloquence bridges **Logic of the Mind** ↔ **Logic of the Machine**, ensuring c
 
 ### Cognitive Load in Traditional Languages
 
-    if (x != null && !y) { doSomething(); }
+```go
+if (x != null && !y) { doSomething(); }
+```
 
 requires decoding (`!=`, `&&`, `!`) before comprehension.
 
 ### Eloquence Semantic Fluency
 
-    if x not_equals none and (a greater b or c less_equal d)
-        return func(x)
-    end
+```eq
+if x not_equals none and not y {
+    doSomething()
+}
+```
 
 **Design Principles:**
 
@@ -69,13 +73,7 @@ requires decoding (`!=`, `&&`, `!`) before comprehension.
 
 ### Full Compiler Flow
 
-graph TD
-    A[Source Code String] --> B[Lexer / Scanner]
-    B --> C[Parser / AST Builder]
-    C --> D[Evaluator / Interpreter]
-    D --> E[Environment / Memory Store]
-    D --> F[Output / show()]
-    D --> G[Built-in Functions]
+![Full Compiler Flow](assets/fcf.png)
 
 **Description:**
 
@@ -89,13 +87,7 @@ graph TD
 
 ### Lexer → Token Flow
 
-graph LR
-    input["x is 10 adds 5"] --> lexer[Lexer]
-    lexer --> token1[IDENT:x]
-    lexer --> token2[IS:is]
-    lexer --> token3[INT:10]
-    lexer --> token4[ADDS:adds]
-    lexer --> token5[INT:5]
+![Lexer](assets/lexer.png)
 
 * Lexer uses **lookahead** to detect multi-word tokens (`pointing to`, `greater_equal`).  
 
@@ -103,14 +95,7 @@ graph LR
 
 ### Parser → AST Flow
 
-graph TD
-    tokens[Tokens Array] --> parser[Parser]
-    parser --> ast1[AssignmentStatement]
-    ast1 --> name["Name: x"]
-    ast1 --> value[InfixExpression]
-    value --> left[5]
-    value --> operator[adds]
-    value --> right[10]
+![Parser](assets/parser.png)
 
 * Uses **Pratt parsing** for precedence and correct grouping  
 * Handles **block vs struct ambiguity** with 3-token lookahead  
@@ -119,13 +104,7 @@ graph TD
 
 ### Evaluator → Environment Flow
 
-graph TD
-    AST[AST Node] --> eval[Evaluator]
-    eval --> env[Environment]
-    env --> store[Variable Store / Scope]
-    eval --> ptr[Pointer Object]
-    ptr --> store
-    eval --> output[show() / return value]
+![Evaluator](assets/evaluator.png)
 
 * **Closures** capture the environment at definition  
 * **Pointers** reference variables across scopes  
@@ -135,8 +114,9 @@ graph TD
 ## 🧠 Technical Deep Dive: Pratt Parsing
 
 Expression:  
-
-    result is 5 adds 10 times 2
+```
+result is 5 adds 10 times 2
+```
 
 Correct evaluation uses **binding power**:
 
@@ -151,8 +131,6 @@ Correct evaluation uses **binding power**:
 ---
 
 ## 📂 Project Structure & Module Responsibility
-
-eloquence/
 
     ast/        # AST Node definitions
     evaluator/  # Runtime evaluation
@@ -172,15 +150,7 @@ eloquence/
 
 ### Object System Overview
 
-graph TD
-    Integer --> Object[Object Interface]
-    Boolean --> Object
-    String --> Object
-    Array --> Object
-    Map --> Object
-    StructInstance --> Object
-    Function --> Object
-    Pointer --> Object
+![OSO](assets/ood.png)
 
 * **Object Interface**: Type() and Inspect()  
 * **Environment**: Hash map with `outer` pointer for lexical scoping  
@@ -191,12 +161,7 @@ graph TD
 
 ### Memory & Environment Flow
 
-graph TD
-    Global[Global Environment] --> Local1[Function Call Env]
-    Local1 --> Local2[Block Env]
-    Local2 --> Lookup[Variable Lookup]
-    Pointer --> Lookup
-    Eval --> Output[show() / return value]
+![memory](assets/memory.png)
 
 ---
 
@@ -223,8 +188,9 @@ graph TD
 ## 💻 The Interactive REPL
 
 Start:
-
-    go run main.go
+```bash
+go run main.go
+```
 
 **Meta-commands:**
 
@@ -246,10 +212,15 @@ Start:
 | Sanity      | `*_sanity_test.go`       | Edge case handling |
 | System      | `tests/system_test.go`   | Full pipeline / algorithm verification |
 
-Run:
 
-    go test ./... -v
-    go test -bench=. ./...
+* **Run all Tests:**
+```go
+go test ./... -v
+```
+* **Run Benchmark Test:**
+```go
+go test -bench=. ./...
+```
 
 ---
 
@@ -257,20 +228,16 @@ Run:
 
 ### WASM Runtime Flow
 
-graph TD
-    JS[Browser] --> runEloquence[JS Function]
-    runEloquence --> WASM[WebAssembly Binary]
-    WASM --> Evaluator
-    Evaluator --> Object/Env
-    Evaluator --> Output[logs]
-    JS --> Console[Display Logs]
+![wasm](assets/wasm.png)
 
 Build WASM:
-
-    GOOS=js GOARCH=wasm go build -o main.wasm wasm/wasm_main.go
+```bash
+GOOS=js GOARCH=wasm go build -o main.wasm wasm/wasm_main.go
+```
 
 HTML Integration:
 
+```html
     <script src="wasm_exec.js"></script>
     <script>
         const go = new Go();
@@ -280,20 +247,38 @@ HTML Integration:
         const output = runEloquence('show("Hello World")');
         console.log(output.logs);
     </script>
+```
 
 ---
 
 ## 🚀 Installation & Usage
 
-1. **Prerequisites:** Go 1.20+  
-2. **Clone & Build:**
+* **Playground:** You can try the language online without installing anything.
+  **Link:** [eloquence-lang.vercel.app](https://eloquence-lang.vercel.app)
 
-        git clone https://github.com/amogh/eloquence.git
-        cd eloquence
-        go build -o eloquence main.go
+1. **Prerequisites:** 
+   * [Go 1.20+](go.dev) installed on your system.
 
-3. **REPL Mode:** `./eloquence`  
-4. **Run Script:** `./eloquence script.eq`
+2. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/amogh/eloquence.git
+    ```
+3. **Navigate to the Directory:**
+    ```bash
+    cd eloquence
+    ```
+4. **Build main.go:**
+    ```bash
+    go build -o eloquence main.go
+    ```
+5. **REPL Mode:** 
+    ```bash
+    ./eloquence
+    ```  
+6. **Run Script:** 
+    ```bash
+    ./eloquence script.eq
+    ```
 
 ---
 
