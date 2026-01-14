@@ -64,7 +64,7 @@ if x not_equals none and not y {
 **Design Principles:**
 
 * Linearity (no semicolons)  
-* Explicit scoping (`end`)  
+* Explicit scoping (`{}`)  
 * Semantic operators (`is`, `adds`, `none`)  
 
 ---
